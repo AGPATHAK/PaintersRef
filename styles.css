@@ -473,6 +473,47 @@ input[type="range"]::-moz-range-thumb {
   border-bottom: 0;
 }
 
+.painting-view-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  border: 0;
+  overflow: visible;
+}
+
+.painting-view-grid .view-mode-button {
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+}
+
+.painting-view-grid .view-mode-button:nth-child(2n),
+.painting-view-grid .view-mode-button:nth-last-child(-n + 2) {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.painting-view-grid .view-mode-button[data-view-mode="grayscale"],
+.painting-view-grid .view-mode-button[data-view-mode="notan"],
+.painting-view-grid .view-mode-button[data-view-mode="temperatureStudy"],
+.painting-view-grid .view-mode-button[data-view-mode="paletteStudy"] {
+  grid-column: span 3;
+}
+
+.painting-view-grid .view-mode-button[data-view-mode="lightMask"],
+.painting-view-grid .view-mode-button[data-view-mode="midtoneMask"],
+.painting-view-grid .view-mode-button[data-view-mode="shadowMask"] {
+  grid-column: span 2;
+}
+
+[data-stage-section="drawing"] .painting-view-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+[data-stage-section="drawing"] .painting-view-grid .view-mode-button {
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
 .view-mode-button.is-active {
   background: var(--accent);
   border-color: var(--accent);
@@ -498,6 +539,15 @@ input[type="range"]::-moz-range-thumb {
 
 .composition-crop-controls.is-hidden {
   display: none;
+}
+
+.composition-instruction {
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border));
+  border-radius: var(--radius-small);
+  background: color-mix(in srgb, var(--accent-soft) 38%, var(--bg-input));
+  color: var(--text);
+  font-weight: 500;
 }
 
 #outlineControlsSection .simple-grid-controls,
