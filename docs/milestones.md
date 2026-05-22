@@ -21,17 +21,44 @@ M1 ended with a usable, stable deterministic foundation and a clear decision to 
 
 ## M2 Workflow UX Upgrade
 
-**Status:** In progress
+**Status:** Stable checkpoint / real-use validation
 
-### Completed so far in M2
+### Completed in M2
 
 - Tinted tonal-mask workflow stabilized
 - Outline detail presets clarified into bounded Low / Medium / High detail
 - Export Current View exposed as a visible top-level action
 - 3-sheet preview/export workflow implemented
 - Previews stage simplified so it opens directly into the prepared sheet workflow
+- Composition guidance visibility improved
+- Composition crop-size slider behavior fixed so all intended previews respond
+- Selected composition crop remains aligned with the clicked preview
+- Painting-mode button layout cleaned up
+- Drawing-mode button layout corrected after painting layout cleanup
+- Temperature Study and Palette Notes visually separated in the painting controls
+- Outline presets recalibrated for cleaner rough sketches
+- Warm/cool/neutral temperature grouping calibrated to reduce near-neutral misclassification
 
-### Current M2 Product Additions
+### Current M2 Product State
+
+- **Composition**
+  - Focal-point crop studies
+  - Adjustable crop size
+  - Original or selected crop can become the working reference
+- **Drawing**
+  - Rough outline sketch with calibrated Low / Medium / High presets
+  - Mirror Check
+- **Painting**
+  - Grayscale
+  - 3-Value Notan
+  - Light / Midtone / Shadow masks
+  - Warm / Cool / Neutral temperature study
+  - Palette Notes
+- **Exports**
+  - Export Current View
+  - Sheet preview/export workflow
+
+### Current 3-Sheet Workflow
 
 - **Sheet 1 - Value & Drawing**
   - Original
@@ -52,9 +79,9 @@ M1 ended with a usable, stable deterministic foundation and a clear decision to 
 ### Remaining M2 Focus
 
 - Real-world usage testing
-- Calibration of outline presets
-- Calibration of warm/cool/neutral masks
-- UI polish and visual cleanup where needed
+- Small UI aesthetics and spacing polish only where real use shows friction
+- Documentation alignment when behavior or wording changes
+- Bug fixes only when regressions are observed
 
 ## M3 Compare & Session Features
 
