@@ -882,7 +882,7 @@ function getOutlineRenderSettings(outlineOptions) {
   return {
     sensitivity,
     smoothing,
-    threshold: clamp(180 - sensitivity, 40, 170),
+    threshold: clamp(186 - sensitivity, 46, 176),
     blurPasses: smoothing
   };
 }
@@ -1287,9 +1287,7 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-// Focal crop output can become the working reference for later stages.
-// Keep this helper deterministic; controller state decides when it is used.
-function createCompositionCropCanvas(sourceCanvas, focalPoint, options = {}) {
+function getCompositionCropScale(sourceCanvas, focalPoint, options = {}) {
   const {
     cropPercent = 72,
     intersectionX = 1 / 3,
@@ -1313,7 +1311,30 @@ function createCompositionCropCanvas(sourceCanvas, focalPoint, options = {}) {
     safeFocalPoint.y / (sourceCanvas.height * safeIntersectionY),
     (sourceCanvas.height - safeFocalPoint.y) / (sourceCanvas.height * (1 - safeIntersectionY))
   );
-  const safeScale = Math.max(0.02, Math.min(horizontalScale, verticalScale, requestedScale));
+
+  return Math.max(0.02, Math.min(horizontalScale, verticalScale, requestedScale));
+}
+
+// Focal crop output can become the working reference for later stages.
+// Keep this helper deterministic; controller state decides when it is used.
+function createCompositionCropCanvas(sourceCanvas, focalPoint, options = {}) {
+  const {
+    cropPercent = 72,
+    intersectionX = 1 / 3,
+    intersectionY = 1 / 3,
+    cropScale = null
+  } = options;
+  const safeIntersectionX = clamp(intersectionX, 0.05, 0.95);
+  const safeIntersectionY = clamp(intersectionY, 0.05, 0.95);
+  const safeFocalPoint = {
+    x: clamp(focalPoint.x, 1, sourceCanvas.width - 1),
+    y: clamp(focalPoint.y, 1, sourceCanvas.height - 1)
+  };
+  const safeScale = cropScale ?? getCompositionCropScale(sourceCanvas, safeFocalPoint, {
+    cropPercent,
+    intersectionX: safeIntersectionX,
+    intersectionY: safeIntersectionY
+  });
   const cropWidth = Math.max(1, Math.round(sourceCanvas.width * safeScale));
   const cropHeight = Math.max(1, Math.round(sourceCanvas.height * safeScale));
   const cropX = Math.round(clamp(
@@ -2097,7 +2118,7 @@ class PaintersReferenceApp {
     }
     if (this.dom.focalStudyInstructionText) {
       this.dom.focalStudyInstructionText.textContent = hasFocalPoint
-        ? "Click a crop to use it for later stages. Clear Selection returns to the original."
+        ? "Click a crop to use it. Clear Selection returns to original."
         : "Click the image to place a point of interest.";
     }
     if (this.dom.useOriginalCompositionButton) {
@@ -2326,10 +2347,13 @@ class PaintersReferenceApp {
         return;
       }
 
+      const sharedCropScale = clamp(this.state.focalStudy.cropPercent, 55, 95) / 100;
+
       const cropStudy = createCompositionCropCanvas(referenceCanvas, this.state.focalStudy.point, {
         cropPercent: this.state.focalStudy.cropPercent,
         intersectionX: cropOption.intersectionX,
-        intersectionY: cropOption.intersectionY
+        intersectionY: cropOption.intersectionY,
+        cropScale: sharedCropScale
       });
 
       nextChoice = {
@@ -2559,16 +2583,19 @@ class PaintersReferenceApp {
       return;
     }
 
+    const sharedCropScale = clamp(this.state.focalStudy.cropPercent, 55, 95) / 100;
+
     const cropStudies = COMPOSITION_CROP_OPTIONS.map((study) => ({
       ...study,
       crop: createCompositionCropCanvas(referenceCanvas, this.state.focalStudy.point, {
         cropPercent: this.state.focalStudy.cropPercent,
         intersectionX: study.intersectionX,
-        intersectionY: study.intersectionY
+        intersectionY: study.intersectionY,
+        cropScale: sharedCropScale
       })
     }));
 
-    const labelHeight = 38;
+    const labelHeight = 62;
     const margin = 24;
     const gutter = 24;
     const panelImageSize = computeContainSize(
@@ -2606,6 +2633,7 @@ class PaintersReferenceApp {
         {
           labelHeight,
           isSelected,
+          sublabel: isSelected ? "Currently in use" : "Click to use this crop",
           overlayDrawer: (ctx, imageRect) => {
             drawThirdsOverlay(ctx, imageRect);
             drawCompositionPointMarker(
