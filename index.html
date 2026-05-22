@@ -199,15 +199,15 @@
                     type="range"
                     min="10"
                     max="120"
-                    value="60"
+                    value="52"
                     list="outlineSensitivityMarkers"
                   />
                   <datalist id="outlineSensitivityMarkers">
-                    <option value="30" label="Low"></option>
-                    <option value="60" label="Medium"></option>
-                    <option value="90" label="High"></option>
+                    <option value="24" label="Low"></option>
+                    <option value="52" label="Medium"></option>
+                    <option value="82" label="High"></option>
                   </datalist>
-                  <p id="outlineSensitivityValue" class="slider-value">60</p>
+                  <p id="outlineSensitivityValue" class="slider-value">52</p>
                 </div>
 
                 <div class="field">
@@ -217,15 +217,15 @@
                     type="range"
                     min="0"
                     max="3"
-                    value="1"
+                    value="2"
                     list="outlineSmoothingMarkers"
                   />
                   <datalist id="outlineSmoothingMarkers">
-                    <option value="0" label="High"></option>
-                    <option value="1" label="Medium"></option>
-                    <option value="2" label="Low"></option>
+                    <option value="1" label="High"></option>
+                    <option value="2" label="Medium"></option>
+                    <option value="3" label="Low"></option>
                   </datalist>
-                  <p id="outlineSmoothingValue" class="slider-value">1 pass</p>
+                  <p id="outlineSmoothingValue" class="slider-value">2 passes</p>
                 </div>
               </div>
             </div>
@@ -241,7 +241,7 @@
             <span id="paintingStageValue" class="stage-toggle-value">Grayscale</span>
           </button>
           <div class="stage-body" data-stage-body="painting">
-            <div class="view-mode-grid">
+            <div class="view-mode-grid painting-view-grid">
               <button type="button" class="view-mode-button" data-view-mode="grayscale">Grayscale</button>
               <button type="button" class="view-mode-button" data-view-mode="notan">3-Value Notan</button>
               <button type="button" class="view-mode-button" data-view-mode="lightMask">Light Mask</button>

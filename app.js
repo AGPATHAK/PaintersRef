@@ -349,10 +349,15 @@ function createTemperatureMaskCanvasFromCanvas(sourceCanvas, maskType, options =
     const b = sourceData[i + 2];
     const gray = Math.round((0.299 * r) + (0.587 * g) + (0.114 * b));
     const { hue, saturation } = rgbToHsl(r, g, b);
+    const chroma = ((Math.max(r, g, b) - Math.min(r, g, b)) / 255) * 100;
+    const hasTemperatureSignal = (
+      saturation >= safeNeutralThreshold &&
+      chroma >= (safeNeutralThreshold * 0.45)
+    );
 
     let isActive = false;
 
-    if (saturation >= safeNeutralThreshold) {
+    if (hasTemperatureSignal) {
       const warmHue = isWarmHue(hue, pivot);
       if (maskType === "warm") {
         isActive = warmHue;
@@ -832,18 +837,18 @@ function getOutlinePresetSettings(detailLevel) {
   const presets = {
     low: {
       label: "Low",
-      sensitivity: 30,
-      smoothing: 2
+      sensitivity: 24,
+      smoothing: 3
     },
     medium: {
       label: "Medium",
-      sensitivity: 60,
-      smoothing: 1
+      sensitivity: 52,
+      smoothing: 2
     },
     high: {
       label: "High",
-      sensitivity: 90,
-      smoothing: 0
+      sensitivity: 82,
+      smoothing: 1
     }
   };
 
@@ -882,7 +887,7 @@ function getOutlineRenderSettings(outlineOptions) {
   return {
     sensitivity,
     smoothing,
-    threshold: clamp(186 - sensitivity, 46, 176),
+    threshold: clamp(200 - sensitivity, 58, 184),
     blurPasses: smoothing
   };
 }
@@ -1513,8 +1518,8 @@ class PaintersReferenceApp {
       viewMode: "original",
       activeStage: "baseline",
       outline: {
-        sensitivity: 60,
-        smoothing: 1
+        sensitivity: 52,
+        smoothing: 2
       },
       squint: {
         softness: 35
