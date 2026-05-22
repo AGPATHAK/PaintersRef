@@ -3,19 +3,27 @@
 ## Stable Version
 
 - Current stable checkpoint: **V5.2**
+- Latest completed work: issue-081 composition/painting UI cleanup and issue-082 outline/temperature calibration
 
 ## What Is Working
 
 - Image loading
+- Composition focal-point workflow with adjustable crop previews
+- Selected crop becomes the working reference for later stages
 - Grid overlay
 - Grayscale study
+- Squint study
 - 3-value Notan
-- Tonal masks
-- Rough outline sketch with Low / Medium / High detail presets
-- Current-view export
+- Light / Midtone / Shadow masks
+- Warm / Cool / Neutral temperature study
+- Rough outline sketch with calibrated Low / Medium / High detail presets
+- Mirror Check
+- Palette Notes
+- Export Current View
 - Preview workflow with 3 prepared sheets
+- Sheet export from the preview workflow
 
-### Current 3-Sheet Workflow
+## Current 3-Sheet Workflow
 
 - **Sheet 1 - Value & Drawing**
   - Original
@@ -33,33 +41,29 @@
   - Cool Mask
   - Neutral Mask
 
-## What Should Be Tested During Real Usage
+## What To Test During Continued Use
 
-- Whether outline presets are too busy on architecture, foliage, and dense texture
+- Whether crop-size changes feel natural across different focal-point placements
+- Whether selected composition crops match the preview the user clicked
+- Whether outline presets are useful on architecture, foliage, portraits, and simpler still-life references
 - Whether warm/cool/neutral masks feel painter-useful across different lighting situations
-- Whether sheet labels and preview/export wording feel natural in repeated use
-- Whether the current UI arrangement still feels clean after longer sessions
+- Whether the 3-sheet preview/export workflow remains clear after repeated use
+- Whether sidebar spacing and small-screen behavior need any further polish
 
-## What Should Not Be Casually Changed
+## What Not To Casually Change
 
 - Current export logic
 - The 3-sheet workflow structure
-- Grid behavior
-- Outline preset behavior unless calibration is intentional
-- Preview/export wiring
+- Preview/sheet wiring
+- Crop workflow
+- Service worker behavior
+- Outline preset model unless calibration is intentional and narrow
 - Broad `app.js` refactor
 
-## Current Architectural Posture
+## Likely Next Priorities
 
-- The app is working.
-- Refactor is intentionally deferred.
-- Do not reopen broad module extraction casually.
-- Resume structural cleanup only after workflow stability is better validated.
-
-## Likely Next Improvement Priorities
-
-1. Outline preset calibration
-2. Warm/cool/neutral mask calibration
-3. UI aesthetics/polish pass
-4. Documentation alignment pass if UI wording changes
-5. Refactor planning only after more usage feedback
+1. Keep using the app on real painting references.
+2. Fix only concrete regressions or repeated workflow friction.
+3. Make small UI polish changes only where the current layout gets in the way.
+4. Keep docs aligned when behavior or wording changes.
+5. Revisit refactor planning only after more stable usage feedback.

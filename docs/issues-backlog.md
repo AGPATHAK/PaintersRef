@@ -1,21 +1,19 @@
 # Issues Backlog
 
-Focused backlog from the current stable V5.2 checkpoint.
+Focused backlog from the current stable V5.2 checkpoint after issue-081 and issue-082.
 
-Completed items have been removed from this list. This backlog is intentionally shorter and more practical than earlier planning versions.
+Completed composition cleanup, painting layout cleanup, outline calibration, and warm/cool/neutral calibration items have been removed from this list. Keep this backlog practical and grounded in real usage.
 
 ## Near Term
 
 | Priority | Type | Title | Size | Depends On | Acceptance Criteria |
 |---|---|---|---|---|---|
-| P1 high | ux | Calibrate outline detail presets on difficult references | M | Real usage feedback | Low / Medium / High detail feel distinct and useful across common scenes, including architecture and foliage. |
-| P1 high | ux | Calibrate warm/cool/neutral mask thresholds | M | Real usage feedback | Temperature masks read as painter-useful across a range of references without obvious misclassification. |
-| P1 high | ux | Review sheet labels and export wording for clarity | S | Current preview/export workflow | Sheet names, preview labels, and export wording feel clear and non-redundant in normal use. |
-| P1 high | docs | Keep README and docs aligned with V5.2 workflow | S | None | Public-facing docs accurately describe current view export, previews, and the 3-sheet workflow. |
-| P1 high | bug | Fix any regression found during real painting use | S/M | As discovered | Stable workflow remains intact after bug fixes. |
-| P2 medium | ux | UI aesthetics and spacing polish pass | M | Stable usage feedback | Interface looks cleaner and more intentional without changing the current workflow model. |
+| P1 high | test | Continue real painting-use validation | M | Current stable app | Composition, drawing, painting, preview, and export workflows hold up during normal reference-prep sessions. |
+| P1 high | bug | Fix regressions found during real use | S/M | As discovered | Stable workflow remains intact after narrow bug fixes. |
+| P1 high | docs | Keep README and docs aligned with V5.2 workflow | S | Any wording or behavior changes | Public-facing docs accurately describe current view export, previews, and the 3-sheet workflow. |
+| P2 medium | ux | Small UI aesthetics and spacing polish pass | M | Stable usage feedback | Interface looks cleaner and more intentional without changing the current workflow model. |
 | P2 medium | ux | Review small-screen and iPad layout behavior | M | Stable usage feedback | The current control hierarchy remains usable on narrower screens and tablets. |
-| P2 medium | docs | Add or refresh release/deployment checklist for V5.2 | S | None | Current stable state can be resumed, tested, and redeployed without guesswork. |
+| P2 medium | test | Refresh manual smoke-test notes if workflow changes | S | Any future UI or export adjustment | Smoke checklist reflects current composition, drawing, painting, preview, and export behavior. |
 
 ## Later / Nice To Have
 
@@ -27,3 +25,8 @@ Completed items have been removed from this list. This backlog is intentionally 
 | P3 low | feature | Consider compare mode only if current preview workflow proves insufficient | M | More real usage | Compare mode is justified by actual workflow friction, not by speculation. |
 | P3 low | feature | Consider saved presets after more usage data | M | Stable workflow | Presets reduce real repetition without cluttering the UI. |
 | P3 low | feature | AI layer planning checkpoint | S | Deterministic workflow stabilized | Any future AI work is clearly bounded and separate from Core Lab. |
+
+## Recently Completed
+
+- issue-081: composition guidance visibility, crop slider responsiveness, painting layout cleanup, drawing button layout cleanup, and Temperature Study / Palette Notes separation
+- issue-082: outline preset calibration and warm/cool/neutral temperature grouping calibration
