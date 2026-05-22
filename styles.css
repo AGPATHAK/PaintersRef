@@ -481,6 +481,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .painting-view-grid .view-mode-button {
+  position: relative;
   min-height: 42px;
   border: 1px solid var(--border);
   border-radius: var(--radius-small);
@@ -503,6 +504,15 @@ input[type="range"]::-moz-range-thumb {
 .painting-view-grid .view-mode-button[data-view-mode="midtoneMask"],
 .painting-view-grid .view-mode-button[data-view-mode="shadowMask"] {
   grid-column: span 2;
+}
+
+.painting-view-grid .view-mode-button[data-view-mode="paletteStudy"]::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: -5px;
+  border-left: 1px solid var(--border);
 }
 
 [data-stage-section="drawing"] .painting-view-grid {
