@@ -47,34 +47,32 @@
 
     <main class="app-main">
       <aside class="control-panel">
-        <section class="panel-section compact-section reference-section">
-          <h2>Reference Image</h2>
-          <div id="referenceUploadBlock">
-            <label for="imageInput" class="file-label">Choose JPG or PNG</label>
-            <input
-              id="imageInput"
-              type="file"
-              accept="image/png, image/jpeg"
-            />
-          </div>
-          <div id="referenceSummary" class="reference-summary is-hidden">
-            <div>
-              <p class="reference-summary-label">Loaded Image</p>
-              <p id="referenceFileName" class="reference-summary-name">None</p>
-            </div>
-            <button id="changeImageButton" type="button" class="secondary-button">Change Image</button>
-          </div>
-          <p class="helper-text">
-            Images are fitted to the working canvas while preserving aspect ratio.
-          </p>
-        </section>
-
         <section class="panel-section compact-section workflow-stage" data-stage-section="baseline">
           <button type="button" class="stage-toggle" data-stage-toggle="baseline">
-            <span class="stage-toggle-label">Baseline</span>
+            <span class="stage-toggle-label">Reference Image</span>
             <span id="baselineStageValue" class="stage-toggle-value">Original</span>
           </button>
           <div class="stage-body" data-stage-body="baseline">
+            <div class="reference-section">
+              <div id="referenceUploadBlock">
+                <label for="imageInput" class="file-label">Choose JPG or PNG</label>
+                <input
+                  id="imageInput"
+                  type="file"
+                  accept="image/png, image/jpeg"
+                />
+              </div>
+              <div id="referenceSummary" class="reference-summary is-hidden">
+                <div>
+                  <p class="reference-summary-label">Loaded Image</p>
+                  <p id="referenceFileName" class="reference-summary-name">None</p>
+                </div>
+                <button id="changeImageButton" type="button" class="secondary-button">Change Image</button>
+              </div>
+              <p class="helper-text">
+                Images are fitted to the working canvas while preserving aspect ratio.
+              </p>
+            </div>
             <div class="control-cluster">
               <div class="grid-row-top">
                 <h3>Grid</h3>
@@ -130,16 +128,18 @@
           </div>
         </section>
 
-        <section class="panel-section compact-section workflow-stage" data-stage-section="observation">
-          <button type="button" class="stage-toggle" data-stage-toggle="observation">
-            <span class="stage-toggle-label">Observation</span>
-            <span id="observationStageValue" class="stage-toggle-value">Squint</span>
+        <section class="panel-section compact-section workflow-stage" data-stage-section="drawing">
+          <button type="button" class="stage-toggle" data-stage-toggle="drawing">
+            <span class="stage-toggle-label">Drawing</span>
+            <span id="drawingStageValue" class="stage-toggle-value">Outline (Medium)</span>
           </button>
-          <div class="stage-body" data-stage-body="observation">
-            <div class="view-mode-grid view-mode-grid--single">
+          <div class="stage-body" data-stage-body="drawing">
+            <div class="view-mode-grid painting-view-grid">
               <button type="button" class="view-mode-button" data-view-mode="squint">Squint</button>
+              <button type="button" class="view-mode-button" data-view-mode="outlineSketch">Outline Sketch</button>
+              <button type="button" class="view-mode-button" data-view-mode="mirror">Mirror Check</button>
             </div>
-            <div id="squintControlsSection" class="mode-detail">
+            <div id="squintControlsSection" class="mode-detail is-hidden">
               <div class="detail-header-row">
                 <h3>Squint Controls</h3>
                 <span class="detail-status-label">Value Mass Study</span>
@@ -162,24 +162,8 @@
                 <p id="squintBlurValue" class="slider-value">35%</p>
               </div>
               <p class="helper-text">
-                Softens and groups grayscale values so larger masses read before smaller detail.
+                Softens and groups grayscale values before drawing; Outline Source = Squint uses this setting.
               </p>
-            </div>
-            <p class="helper-text">
-              Use Squint to study big value masses before deciding what to draw.
-            </p>
-          </div>
-        </section>
-
-        <section class="panel-section compact-section workflow-stage" data-stage-section="drawing">
-          <button type="button" class="stage-toggle" data-stage-toggle="drawing">
-            <span class="stage-toggle-label">Drawing</span>
-            <span id="drawingStageValue" class="stage-toggle-value">Outline (Medium)</span>
-          </button>
-          <div class="stage-body" data-stage-body="drawing">
-            <div class="view-mode-grid painting-view-grid">
-              <button type="button" class="view-mode-button" data-view-mode="outlineSketch">Outline Sketch</button>
-              <button type="button" class="view-mode-button" data-view-mode="mirror">Mirror Check</button>
             </div>
             <div id="outlineControlsSection" class="mode-detail">
               <div class="detail-header-row">
@@ -194,6 +178,9 @@
                   <option value="original">Original</option>
                   <option value="notan">Notan</option>
                 </select>
+                <p class="helper-text">
+                  Squint and Notan sources use the current settings from their source controls.
+                </p>
               </div>
               <div class="preset-button-row">
                 <button type="button" class="secondary-button secondary-button--small outline-preset-button" data-outline-preset="low">Low</button>
@@ -355,19 +342,16 @@
           </div>
         </section>
 
-        <section class="panel-section compact-section">
-          <button id="exportCurrentViewButton" type="button">Export Current View</button>
-          <p class="helper-text">
-            Saves exactly what you are currently seeing on the canvas.
-          </p>
-        </section>
-
         <section class="panel-section compact-section workflow-stage" data-stage-section="general">
           <button type="button" class="stage-toggle" data-stage-toggle="general">
-            <span class="stage-toggle-label">Previews</span>
-            <span id="generalStageValue" class="stage-toggle-value">Previews</span>
+            <span class="stage-toggle-label">Export</span>
+            <span id="generalStageValue" class="stage-toggle-value">Sheets</span>
           </button>
           <div class="stage-body" data-stage-body="general">
+            <button id="exportCurrentViewButton" type="button">Export Current View</button>
+            <p class="helper-text">
+              Saves exactly what you are currently seeing on the canvas.
+            </p>
             <div id="sheetPreviewPanel" class="mode-detail sheet-preview-panel is-hidden">
               <div class="detail-header-row">
                 <h3>Sheet Preview</h3>
@@ -418,7 +402,7 @@
         </section>
 
         <section class="panel-section compact-section">
-          <h2>Image Info</h2>
+          <h2>Info</h2>
           <dl class="info-list compact-info-list">
             <div>
               <dt>Status</dt>
