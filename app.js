@@ -1453,6 +1453,7 @@ class PaintersReferenceApp {
       outlineDetailText: document.getElementById("outlineDetailText"),
       outlineControlsSection: document.getElementById("outlineControlsSection"),
       outlinePresetLabel: document.getElementById("outlinePresetLabel"),
+      outlineSourceInput: document.getElementById("outlineSourceInput"),
       outlineSensitivityInput: document.getElementById("outlineSensitivityInput"),
       outlineSensitivityValue: document.getElementById("outlineSensitivityValue"),
       outlineSmoothingInput: document.getElementById("outlineSmoothingInput"),
@@ -1518,6 +1519,7 @@ class PaintersReferenceApp {
       viewMode: "original",
       activeStage: "baseline",
       outline: {
+        source: "gray",
         sensitivity: 52,
         smoothing: 2
       },
@@ -1711,6 +1713,13 @@ class PaintersReferenceApp {
       this.renderScene();
     });
 
+    this.dom.outlineSourceInput.addEventListener("change", () => {
+      this.state.outline.source = this.dom.outlineSourceInput.value || "gray";
+      this.refreshOutlineCanvas();
+      this.updateOutlineControls();
+      this.renderScene();
+    });
+
     this.dom.outlineSmoothingInput.addEventListener("input", () => {
       this.state.outline.smoothing = this.getSafeInteger(
         this.dom.outlineSmoothingInput.value,
@@ -1731,6 +1740,9 @@ class PaintersReferenceApp {
         100
       );
       this.refreshSquintCanvas();
+      if (this.state.outline.source === "squint") {
+        this.refreshOutlineCanvas();
+      }
       this.updateSquintControls();
       this.renderScene();
     });
@@ -1747,6 +1759,9 @@ class PaintersReferenceApp {
         this.state.notan.lightCutoff - this.state.notan.minimumGap
       );
       this.refreshNotanCanvas();
+      if (this.state.outline.source === "notan") {
+        this.refreshOutlineCanvas();
+      }
       this.updateNotanControls();
       this.renderScene();
     });
@@ -1763,6 +1778,9 @@ class PaintersReferenceApp {
         this.state.notan.shadowCutoff + this.state.notan.minimumGap
       );
       this.refreshNotanCanvas();
+      if (this.state.outline.source === "notan") {
+        this.refreshOutlineCanvas();
+      }
       this.updateNotanControls();
       this.renderScene();
     });
@@ -1903,6 +1921,9 @@ class PaintersReferenceApp {
       this.state.notan.shadowCutoff = 85;
       this.state.notan.lightCutoff = 170;
       this.refreshNotanCanvas();
+      if (this.state.outline.source === "notan") {
+        this.refreshOutlineCanvas();
+      }
       this.updateNotanControls();
       this.renderScene();
     });
@@ -2071,6 +2092,7 @@ class PaintersReferenceApp {
   }
 
   updateOutlineControls() {
+    this.dom.outlineSourceInput.value = this.state.outline.source || "gray";
     this.dom.outlineSensitivityInput.value = this.state.outline.sensitivity;
     this.dom.outlineSmoothingInput.value = this.state.outline.smoothing;
     this.dom.outlineSensitivityValue.textContent = `${this.state.outline.sensitivity}`;
@@ -2226,12 +2248,13 @@ class PaintersReferenceApp {
   }
 
   refreshOutlineCanvas() {
-    if (!this.state.processed.grayscaleCanvas) {
+    const outlineSourceCanvas = this.getOutlineSourceCanvas();
+    if (!outlineSourceCanvas) {
       return;
     }
 
     this.state.processed.outlineSketchCanvas = createOutlineSketchCanvasFromGrayscaleCanvas(
-      this.state.processed.grayscaleCanvas,
+      outlineSourceCanvas,
       this.state.outline
     );
     this.refreshDrawingDerivedCanvases();
@@ -2261,6 +2284,22 @@ class PaintersReferenceApp {
   refreshDrawingDerivedCanvases() {
     this.refreshMirrorCanvas();
     this.refreshSquintCanvas();
+  }
+
+  getOutlineSourceCanvasFromCanvases(canvases) {
+    const sourceKey = this.state.outline.source || "gray";
+    const sourceMap = {
+      gray: canvases.grayscaleCanvas,
+      squint: canvases.squintCanvas,
+      original: canvases.originalCanvas,
+      notan: canvases.notanCanvas
+    };
+
+    return sourceMap[sourceKey] || canvases.grayscaleCanvas;
+  }
+
+  getOutlineSourceCanvas() {
+    return this.getOutlineSourceCanvasFromCanvases(this.state.processed);
   }
 
   // Central derived-canvas rebuild point. Original/crop selection flows through here.
@@ -2295,9 +2334,15 @@ class PaintersReferenceApp {
       this.state.temperature
     );
 
-    const outlineSketchCanvas =
-      createOutlineSketchCanvasFromGrayscaleCanvas(grayscaleCanvas, this.state.outline);
     const squintCanvas = createSquintCanvasFromGrayscaleCanvas(grayscaleCanvas, this.state.squint);
+    const outlineSourceCanvas = this.getOutlineSourceCanvasFromCanvases({
+      originalCanvas,
+      grayscaleCanvas,
+      notanCanvas,
+      squintCanvas
+    });
+    const outlineSketchCanvas =
+      createOutlineSketchCanvasFromGrayscaleCanvas(outlineSourceCanvas, this.state.outline);
     const mirrorCanvas = createMirroredCanvasFromCanvas(outlineSketchCanvas);
     const paletteColors = extractDominantPaletteFromCanvas(originalCanvas, {
       colorCount: 5

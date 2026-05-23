@@ -570,6 +570,15 @@ input[type="range"]::-moz-range-thumb {
   display: none;
 }
 
+#outlineControlsSection .field {
+  margin-bottom: 12px;
+}
+
+#outlineControlsSection .preset-button-row {
+  gap: 11px;
+  margin-bottom: 12px;
+}
+
 .detail-header-row {
   display: flex;
   align-items: center;
