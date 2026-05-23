@@ -162,7 +162,7 @@
                 <p id="squintBlurValue" class="slider-value">35%</p>
               </div>
               <p class="helper-text">
-                Softens and groups grayscale values before drawing; Outline Source = Squint uses this setting.
+                Softens and groups grayscale values for the Squint view.
               </p>
             </div>
             <div id="outlineControlsSection" class="mode-detail">
@@ -179,7 +179,89 @@
                   <option value="notan">Notan</option>
                 </select>
                 <p class="helper-text">
-                  Squint and Notan sources use the current settings from their source controls.
+                  Source adjustments below affect outline generation only.
+                </p>
+              </div>
+              <div id="outlineGrayControls" class="outline-source-controls">
+                <div class="field">
+                  <label for="outlineGraySimplifyInput">Gray Simplification</label>
+                  <input
+                    id="outlineGraySimplifyInput"
+                    type="range"
+                    min="0"
+                    max="100"
+                    value="0"
+                    list="outlineGraySimplifyMarkers"
+                  />
+                  <datalist id="outlineGraySimplifyMarkers">
+                    <option value="0" label="Clear"></option>
+                    <option value="35" label="Soft"></option>
+                    <option value="70" label="Simple"></option>
+                  </datalist>
+                  <p id="outlineGraySimplifyValue" class="slider-value">0%</p>
+                </div>
+                <p class="helper-text">
+                  Simplifies the gray source for this outline without changing painting studies.
+                </p>
+              </div>
+              <div id="outlineSquintControls" class="outline-source-controls is-hidden">
+                <div class="field">
+                  <label for="outlineSquintSoftnessInput">Outline Squint Softness</label>
+                  <input
+                    id="outlineSquintSoftnessInput"
+                    type="range"
+                    min="0"
+                    max="100"
+                    value="35"
+                    list="outlineSquintSoftnessMarkers"
+                  />
+                  <datalist id="outlineSquintSoftnessMarkers">
+                    <option value="20" label="Gentle"></option>
+                    <option value="35" label="Standard"></option>
+                    <option value="65" label="Soft"></option>
+                  </datalist>
+                  <p id="outlineSquintSoftnessValue" class="slider-value">35%</p>
+                </div>
+                <p class="helper-text">
+                  Local to Outline; the Drawing Squint view keeps its own setting.
+                </p>
+              </div>
+              <div id="outlineNotanControls" class="outline-source-controls is-hidden">
+                <div class="form-grid simple-grid-controls">
+                  <div class="field">
+                    <label for="outlineNotanShadowCutoffInput">Outline Shadow Cutoff</label>
+                    <input
+                      id="outlineNotanShadowCutoffInput"
+                      type="range"
+                      min="0"
+                      max="245"
+                      value="85"
+                      list="outlineNotanShadowCutoffMarkers"
+                    />
+                    <datalist id="outlineNotanShadowCutoffMarkers">
+                      <option value="85" label="Standard"></option>
+                    </datalist>
+                    <p id="outlineNotanShadowCutoffValue" class="slider-value">85</p>
+                  </div>
+
+                  <div class="field">
+                    <label for="outlineNotanLightCutoffInput">Outline Light Cutoff</label>
+                    <input
+                      id="outlineNotanLightCutoffInput"
+                      type="range"
+                      min="10"
+                      max="255"
+                      value="170"
+                      list="outlineNotanLightCutoffMarkers"
+                    />
+                    <datalist id="outlineNotanLightCutoffMarkers">
+                      <option value="170" label="Standard"></option>
+                    </datalist>
+                    <p id="outlineNotanLightCutoffValue" class="slider-value">170</p>
+                  </div>
+                </div>
+                <p class="helper-text">
+                  Local to Outline; the Painting Notan view keeps its own cutoffs.
                 </p>
               </div>
               <div class="preset-button-row">
