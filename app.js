@@ -1713,12 +1713,14 @@ class PaintersReferenceApp {
       this.renderScene();
     });
 
-    this.dom.outlineSourceInput.addEventListener("change", () => {
-      this.state.outline.source = this.dom.outlineSourceInput.value || "gray";
-      this.refreshOutlineCanvas();
-      this.updateOutlineControls();
-      this.renderScene();
-    });
+    if (this.dom.outlineSourceInput) {
+      this.dom.outlineSourceInput.addEventListener("change", () => {
+        this.state.outline.source = this.dom.outlineSourceInput.value || "gray";
+        this.refreshOutlineCanvas();
+        this.updateOutlineControls();
+        this.renderScene();
+      });
+    }
 
     this.dom.outlineSmoothingInput.addEventListener("input", () => {
       this.state.outline.smoothing = this.getSafeInteger(
@@ -2092,7 +2094,9 @@ class PaintersReferenceApp {
   }
 
   updateOutlineControls() {
-    this.dom.outlineSourceInput.value = this.state.outline.source || "gray";
+    if (this.dom.outlineSourceInput) {
+      this.dom.outlineSourceInput.value = this.state.outline.source || "gray";
+    }
     this.dom.outlineSensitivityInput.value = this.state.outline.sensitivity;
     this.dom.outlineSmoothingInput.value = this.state.outline.smoothing;
     this.dom.outlineSensitivityValue.textContent = `${this.state.outline.sensitivity}`;
