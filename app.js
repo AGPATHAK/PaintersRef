@@ -1485,7 +1485,6 @@ class PaintersReferenceApp {
       stageBodyElements: Array.from(document.querySelectorAll("[data-stage-body]")),
       baselineStageValue: document.getElementById("baselineStageValue"),
       compositionStageValue: document.getElementById("compositionStageValue"),
-      observationStageValue: document.getElementById("observationStageValue"),
       drawingStageValue: document.getElementById("drawingStageValue"),
       paintingStageValue: document.getElementById("paintingStageValue"),
       generalStageValue: document.getElementById("generalStageValue"),
@@ -1529,7 +1528,6 @@ class PaintersReferenceApp {
       stageSelections: {
         baseline: "original",
         composition: "focalStudy",
-        observation: "squint",
         drawing: "outlineSketch",
         painting: "grayscale"
       },
@@ -1635,7 +1633,7 @@ class PaintersReferenceApp {
     const stageByViewMode = {
       original: "baseline",
       focalStudy: "composition",
-      squint: "observation",
+      squint: "drawing",
       outlineSketch: "drawing",
       mirror: "drawing",
       grayscale: "painting",
@@ -2010,6 +2008,10 @@ class PaintersReferenceApp {
       return "Mirror Check";
     }
 
+    if (viewMode === "squint") {
+      return "Squint";
+    }
+
     return "Outline";
   }
 
@@ -2064,14 +2066,12 @@ class PaintersReferenceApp {
     this.dom.baselineStageValue.textContent =
       labels[this.state.stageSelections.baseline] || "Original";
     this.dom.compositionStageValue.textContent = this.getCompositionChoiceLabel();
-    this.dom.observationStageValue.textContent =
-      labels[this.state.stageSelections.observation] || "Squint";
     this.dom.drawingStageValue.textContent = this.getDrawingViewLabel();
     this.dom.paintingStageValue.textContent =
       labels[this.state.stageSelections.painting] || "Grayscale";
     this.dom.generalStageValue.textContent = this.state.studySheetPreview.isOpen
       ? `${this.getStudySheetLabel()} Preview`
-      : "Previews";
+      : "Sheets";
 
     const isNotanActive =
       this.state.activeStage === "painting" && this.state.viewMode === "notan";
@@ -2082,7 +2082,7 @@ class PaintersReferenceApp {
     this.dom.outlineControlsSection.classList.toggle("is-hidden", !isOutlineActive);
 
     const isSquintActive =
-      this.state.activeStage === "observation" && this.state.viewMode === "squint";
+      this.state.activeStage === "drawing" && this.state.viewMode === "squint";
     this.dom.squintControlsSection.classList.toggle("is-hidden", !isSquintActive);
 
     const isTemperatureActive =
@@ -2252,6 +2252,8 @@ class PaintersReferenceApp {
   }
 
   refreshOutlineCanvas() {
+    this.refreshSelectedOutlineSourceCanvas();
+
     const outlineSourceCanvas = this.getOutlineSourceCanvas();
     if (!outlineSourceCanvas) {
       return;
@@ -2261,7 +2263,7 @@ class PaintersReferenceApp {
       outlineSourceCanvas,
       this.state.outline
     );
-    this.refreshDrawingDerivedCanvases();
+    this.refreshMirrorCanvas();
   }
 
   refreshSquintCanvas() {
@@ -2288,6 +2290,18 @@ class PaintersReferenceApp {
   refreshDrawingDerivedCanvases() {
     this.refreshMirrorCanvas();
     this.refreshSquintCanvas();
+  }
+
+  refreshSelectedOutlineSourceCanvas() {
+    const sourceKey = this.state.outline.source || "gray";
+
+    if (sourceKey === "squint") {
+      this.refreshSquintCanvas();
+    }
+
+    if (sourceKey === "notan") {
+      this.refreshNotanCanvas();
+    }
   }
 
   getOutlineSourceCanvasFromCanvases(canvases) {
