@@ -2252,6 +2252,8 @@ class PaintersReferenceApp {
   }
 
   refreshOutlineCanvas() {
+    this.refreshSelectedOutlineSourceCanvas();
+
     const outlineSourceCanvas = this.getOutlineSourceCanvas();
     if (!outlineSourceCanvas) {
       return;
@@ -2261,7 +2263,7 @@ class PaintersReferenceApp {
       outlineSourceCanvas,
       this.state.outline
     );
-    this.refreshDrawingDerivedCanvases();
+    this.refreshMirrorCanvas();
   }
 
   refreshSquintCanvas() {
@@ -2288,6 +2290,18 @@ class PaintersReferenceApp {
   refreshDrawingDerivedCanvases() {
     this.refreshMirrorCanvas();
     this.refreshSquintCanvas();
+  }
+
+  refreshSelectedOutlineSourceCanvas() {
+    const sourceKey = this.state.outline.source || "gray";
+
+    if (sourceKey === "squint") {
+      this.refreshSquintCanvas();
+    }
+
+    if (sourceKey === "notan") {
+      this.refreshNotanCanvas();
+    }
   }
 
   getOutlineSourceCanvasFromCanvases(canvases) {
