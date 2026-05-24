@@ -1642,7 +1642,7 @@ class PaintersReferenceApp {
     const stageByViewMode = {
       original: "baseline",
       focalStudy: "composition",
-      squint: "drawing",
+      squint: "painting",
       outlineSketch: "drawing",
       mirror: "drawing",
       grayscale: "painting",
@@ -1980,10 +1980,6 @@ class PaintersReferenceApp {
       return "Mirror Check";
     }
 
-    if (viewMode === "squint") {
-      return "Squint";
-    }
-
     return "Outline";
   }
 
@@ -2054,7 +2050,7 @@ class PaintersReferenceApp {
     this.dom.outlineControlsSection.classList.toggle("is-hidden", !isOutlineActive);
 
     const isSquintActive =
-      this.state.activeStage === "drawing" && this.state.viewMode === "squint";
+      this.state.activeStage === "painting" && this.state.viewMode === "squint";
     this.dom.squintControlsSection.classList.toggle("is-hidden", !isSquintActive);
 
     const isTemperatureActive =
