@@ -131,7 +131,7 @@
         <section class="panel-section compact-section workflow-stage" data-stage-section="drawing">
           <button type="button" class="stage-toggle" data-stage-toggle="drawing">
             <span class="stage-toggle-label">Drawing</span>
-            <span id="drawingStageValue" class="stage-toggle-value">Outline (Medium)</span>
+            <span id="drawingStageValue" class="stage-toggle-value">Outline (Balanced)</span>
           </button>
           <div class="stage-body" data-stage-body="drawing">
             <div class="view-mode-grid painting-view-grid">
@@ -141,7 +141,7 @@
             <div id="outlineControlsSection" class="mode-detail">
               <div class="detail-header-row">
                 <h3>Outline Controls</h3>
-                <span id="outlinePresetLabel" class="detail-status-label">Medium</span>
+                <span id="outlinePresetLabel" class="detail-status-label">Balanced</span>
               </div>
               <div class="field">
                 <label for="outlineSourceInput">Outline Source</label>
@@ -156,9 +156,9 @@
                 </p>
               </div>
               <div class="preset-button-row">
-                <button type="button" class="secondary-button secondary-button--small outline-preset-button" data-outline-preset="low">Low</button>
-                <button type="button" class="secondary-button secondary-button--small outline-preset-button" data-outline-preset="medium">Medium</button>
-                <button type="button" class="secondary-button secondary-button--small outline-preset-button" data-outline-preset="high">High</button>
+                <button type="button" class="secondary-button secondary-button--small outline-preset-button" data-outline-preset="low">Simple</button>
+                <button type="button" class="secondary-button secondary-button--small outline-preset-button" data-outline-preset="medium">Balanced</button>
+                <button type="button" class="secondary-button secondary-button--small outline-preset-button" data-outline-preset="high">Detailed</button>
               </div>
             </div>
             <p class="helper-text">
@@ -185,11 +185,10 @@
             </div>
             <div id="squintControlsSection" class="mode-detail is-hidden">
               <div class="detail-header-row">
-                <h3>Squint Controls</h3>
-                <span class="detail-status-label">Value Mass Study</span>
+                <h3>Squint Softness</h3>
               </div>
               <div class="field">
-                <label for="squintBlurInput">Squint Softness</label>
+                <label for="squintBlurInput">Softness</label>
                 <input
                   id="squintBlurInput"
                   type="range"
@@ -213,7 +212,7 @@
               <div class="detail-header-row">
                 <h3>Notan Controls</h3>
                 <button id="resetNotanButton" type="button" class="secondary-button secondary-button--small">
-                  Reset Standard
+                  Reset to Standard
                 </button>
               </div>
               <div class="form-grid simple-grid-controls">
@@ -250,7 +249,7 @@
                 </div>
               </div>
               <p class="helper-text">
-                Standard split: shadow `85`, light `170`. Midtones stay between the two cutoffs.
+                Notan groups the image into dark, middle, and light shapes. Standard split: shadow `85`, light `170`.
               </p>
             </div>
             <div id="temperatureControlsSection" class="mode-detail is-hidden">
@@ -260,7 +259,7 @@
               </div>
               <div class="form-grid simple-grid-controls">
                 <div class="field">
-                  <label for="temperatureNeutralThresholdInput">Ignore Neutrals</label>
+                  <label for="temperatureNeutralThresholdInput">Focus on Color</label>
                   <input
                     id="temperatureNeutralThresholdInput"
                     type="range"
@@ -389,7 +388,7 @@
             </div>
             <div>
               <dt>Outline</dt>
-              <dd id="outlineDetailText">Medium</dd>
+              <dd id="outlineDetailText">Balanced</dd>
             </div>
           </dl>
         </section>
