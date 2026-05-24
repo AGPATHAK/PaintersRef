@@ -1459,6 +1459,17 @@ class PaintersReferenceApp {
       outlineSmoothingInput: document.getElementById("outlineSmoothingInput"),
       outlineSmoothingValue: document.getElementById("outlineSmoothingValue"),
       outlinePresetButtons: Array.from(document.querySelectorAll("[data-outline-preset]")),
+      outlineGrayControls: document.getElementById("outlineGrayControls"),
+      outlineGraySimplifyInput: document.getElementById("outlineGraySimplifyInput"),
+      outlineGraySimplifyValue: document.getElementById("outlineGraySimplifyValue"),
+      outlineSquintControls: document.getElementById("outlineSquintControls"),
+      outlineSquintSoftnessInput: document.getElementById("outlineSquintSoftnessInput"),
+      outlineSquintSoftnessValue: document.getElementById("outlineSquintSoftnessValue"),
+      outlineNotanControls: document.getElementById("outlineNotanControls"),
+      outlineNotanShadowCutoffInput: document.getElementById("outlineNotanShadowCutoffInput"),
+      outlineNotanShadowCutoffValue: document.getElementById("outlineNotanShadowCutoffValue"),
+      outlineNotanLightCutoffInput: document.getElementById("outlineNotanLightCutoffInput"),
+      outlineNotanLightCutoffValue: document.getElementById("outlineNotanLightCutoffValue"),
       squintControlsSection: document.getElementById("squintControlsSection"),
       squintBlurInput: document.getElementById("squintBlurInput"),
       squintBlurValue: document.getElementById("squintBlurValue"),
@@ -1521,6 +1532,13 @@ class PaintersReferenceApp {
         source: "gray",
         sensitivity: 52,
         smoothing: 2
+      },
+      outlineSource: {
+        graySimplification: 0,
+        squintSoftness: 35,
+        notanShadowCutoff: 85,
+        notanLightCutoff: 170,
+        minimumGap: 10
       },
       squint: {
         softness: 35
@@ -1732,6 +1750,62 @@ class PaintersReferenceApp {
       this.renderScene();
     });
 
+    this.dom.outlineGraySimplifyInput.addEventListener("input", () => {
+      this.state.outlineSource.graySimplification = this.getSafeInteger(
+        this.dom.outlineGraySimplifyInput.value,
+        0,
+        0,
+        100
+      );
+      this.refreshOutlineCanvas();
+      this.updateOutlineControls();
+      this.renderScene();
+    });
+
+    this.dom.outlineSquintSoftnessInput.addEventListener("input", () => {
+      this.state.outlineSource.squintSoftness = this.getSafeInteger(
+        this.dom.outlineSquintSoftnessInput.value,
+        35,
+        0,
+        100
+      );
+      this.refreshOutlineCanvas();
+      this.updateOutlineControls();
+      this.renderScene();
+    });
+
+    this.dom.outlineNotanShadowCutoffInput.addEventListener("input", () => {
+      const nextShadowCutoff = this.getSafeInteger(
+        this.dom.outlineNotanShadowCutoffInput.value,
+        85,
+        0,
+        245
+      );
+      this.state.outlineSource.notanShadowCutoff = Math.min(
+        nextShadowCutoff,
+        this.state.outlineSource.notanLightCutoff - this.state.outlineSource.minimumGap
+      );
+      this.refreshOutlineCanvas();
+      this.updateOutlineControls();
+      this.renderScene();
+    });
+
+    this.dom.outlineNotanLightCutoffInput.addEventListener("input", () => {
+      const nextLightCutoff = this.getSafeInteger(
+        this.dom.outlineNotanLightCutoffInput.value,
+        170,
+        10,
+        255
+      );
+      this.state.outlineSource.notanLightCutoff = Math.max(
+        nextLightCutoff,
+        this.state.outlineSource.notanShadowCutoff + this.state.outlineSource.minimumGap
+      );
+      this.refreshOutlineCanvas();
+      this.updateOutlineControls();
+      this.renderScene();
+    });
+
     this.dom.squintBlurInput.addEventListener("input", () => {
       this.state.squint.softness = this.getSafeInteger(
         this.dom.squintBlurInput.value,
@@ -1740,9 +1814,6 @@ class PaintersReferenceApp {
         100
       );
       this.refreshSquintCanvas();
-      if (this.state.outline.source === "squint") {
-        this.refreshOutlineCanvas();
-      }
       this.updateSquintControls();
       this.renderScene();
     });
@@ -1759,9 +1830,6 @@ class PaintersReferenceApp {
         this.state.notan.lightCutoff - this.state.notan.minimumGap
       );
       this.refreshNotanCanvas();
-      if (this.state.outline.source === "notan") {
-        this.refreshOutlineCanvas();
-      }
       this.updateNotanControls();
       this.renderScene();
     });
@@ -1778,9 +1846,6 @@ class PaintersReferenceApp {
         this.state.notan.shadowCutoff + this.state.notan.minimumGap
       );
       this.refreshNotanCanvas();
-      if (this.state.outline.source === "notan") {
-        this.refreshOutlineCanvas();
-      }
       this.updateNotanControls();
       this.renderScene();
     });
@@ -1921,9 +1986,6 @@ class PaintersReferenceApp {
       this.state.notan.shadowCutoff = 85;
       this.state.notan.lightCutoff = 170;
       this.refreshNotanCanvas();
-      if (this.state.outline.source === "notan") {
-        this.refreshOutlineCanvas();
-      }
       this.updateNotanControls();
       this.renderScene();
     });
@@ -2102,6 +2164,23 @@ class PaintersReferenceApp {
     this.dom.outlineSensitivityValue.textContent = `${this.state.outline.sensitivity}`;
     this.dom.outlineSmoothingValue.textContent =
       `${this.state.outline.smoothing} ${this.state.outline.smoothing === 1 ? "pass" : "passes"}`;
+    this.dom.outlineGraySimplifyInput.value = this.state.outlineSource.graySimplification;
+    this.dom.outlineGraySimplifyValue.textContent =
+      `${this.state.outlineSource.graySimplification}%`;
+    this.dom.outlineSquintSoftnessInput.value = this.state.outlineSource.squintSoftness;
+    this.dom.outlineSquintSoftnessValue.textContent =
+      `${this.state.outlineSource.squintSoftness}%`;
+    this.dom.outlineNotanShadowCutoffInput.value = this.state.outlineSource.notanShadowCutoff;
+    this.dom.outlineNotanLightCutoffInput.value = this.state.outlineSource.notanLightCutoff;
+    this.dom.outlineNotanShadowCutoffValue.textContent =
+      `${this.state.outlineSource.notanShadowCutoff}`;
+    this.dom.outlineNotanLightCutoffValue.textContent =
+      `${this.state.outlineSource.notanLightCutoff}`;
+
+    const sourceKey = this.state.outline.source || "gray";
+    this.dom.outlineGrayControls.classList.toggle("is-hidden", sourceKey !== "gray");
+    this.dom.outlineSquintControls.classList.toggle("is-hidden", sourceKey !== "squint");
+    this.dom.outlineNotanControls.classList.toggle("is-hidden", sourceKey !== "notan");
 
     const activePresetKey = getMatchingOutlinePresetKey(this.state.outline);
     this.dom.outlinePresetLabel.textContent =
@@ -2252,8 +2331,6 @@ class PaintersReferenceApp {
   }
 
   refreshOutlineCanvas() {
-    this.refreshSelectedOutlineSourceCanvas();
-
     const outlineSourceCanvas = this.getOutlineSourceCanvas();
     if (!outlineSourceCanvas) {
       return;
@@ -2292,28 +2369,37 @@ class PaintersReferenceApp {
     this.refreshSquintCanvas();
   }
 
-  refreshSelectedOutlineSourceCanvas() {
+  getOutlineSourceCanvasFromCanvases(canvases) {
     const sourceKey = this.state.outline.source || "gray";
 
+    if (sourceKey === "original") {
+      return canvases.originalCanvas;
+    }
+
+    if (!canvases.grayscaleCanvas) {
+      return null;
+    }
+
     if (sourceKey === "squint") {
-      this.refreshSquintCanvas();
+      return createSquintCanvasFromGrayscaleCanvas(canvases.grayscaleCanvas, {
+        softness: this.state.outlineSource.squintSoftness
+      });
     }
 
     if (sourceKey === "notan") {
-      this.refreshNotanCanvas();
+      return createNotanCanvasFromGrayscaleCanvas(canvases.grayscaleCanvas, {
+        shadowCutoff: this.state.outlineSource.notanShadowCutoff,
+        lightCutoff: this.state.outlineSource.notanLightCutoff
+      });
     }
-  }
 
-  getOutlineSourceCanvasFromCanvases(canvases) {
-    const sourceKey = this.state.outline.source || "gray";
-    const sourceMap = {
-      gray: canvases.grayscaleCanvas,
-      squint: canvases.squintCanvas,
-      original: canvases.originalCanvas,
-      notan: canvases.notanCanvas
-    };
+    if (this.state.outlineSource.graySimplification > 0) {
+      return createSquintCanvasFromGrayscaleCanvas(canvases.grayscaleCanvas, {
+        softness: this.state.outlineSource.graySimplification
+      });
+    }
 
-    return sourceMap[sourceKey] || canvases.grayscaleCanvas;
+    return canvases.grayscaleCanvas;
   }
 
   getOutlineSourceCanvas() {
