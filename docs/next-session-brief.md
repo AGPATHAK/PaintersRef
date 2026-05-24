@@ -3,25 +3,30 @@
 ## Stable Version
 
 - Current stable checkpoint: **V5.2**
-- Latest completed work: issue-081 composition/painting UI cleanup and issue-082 outline/temperature calibration
+- Latest completed direction: workflow/sidebar cleanup, Squint moved to Painting, curated outline presets, painter-facing vocabulary cleanup, and docs alignment.
 
 ## What Is Working
 
 - Image loading
+- Reference Image stage with grid controls
 - Composition focal-point workflow with adjustable crop previews
 - Selected crop becomes the working reference for later stages
-- Grid overlay
-- Grayscale study
-- Squint study
-- 3-value Notan
-- Light / Midtone / Shadow masks
-- Warm / Cool / Neutral temperature study
-- Rough outline sketch with calibrated Low / Medium / High detail presets
-- Mirror Check
-- Palette Notes
+- Drawing stage:
+  - Outline Sketch
+  - Mirror Check
+  - Outline Source
+  - Simple / Balanced / Detailed outline detail
+- Painting stage:
+  - Squint and Squint Softness
+  - Grayscale
+  - 3-Value Notan
+  - Light / Midtone / Shadow masks
+  - Warm / Cool / Neutral Temperature Study
+  - Palette Notes
 - Export Current View
-- Preview workflow with 3 prepared sheets
+- Export stage with 3 prepared sheet previews
 - Sheet export from the preview workflow
+- Info stage with compact status and image/view metadata
 
 ## Current 3-Sheet Workflow
 
@@ -45,7 +50,8 @@
 
 - Whether crop-size changes feel natural across different focal-point placements
 - Whether selected composition crops match the preview the user clicked
-- Whether outline presets are useful on architecture, foliage, portraits, and simpler still-life references
+- Whether Simple / Balanced / Detailed outline recipes are useful on architecture, foliage, portraits, and simpler still-life references
+- Whether Squint belongs comfortably in Painting during real use
 - Whether warm/cool/neutral masks feel painter-useful across different lighting situations
 - Whether the 3-sheet preview/export workflow remains clear after repeated use
 - Whether sidebar spacing and small-screen behavior need any further polish
@@ -57,13 +63,14 @@
 - Preview/sheet wiring
 - Crop workflow
 - Service worker behavior
-- Outline preset model unless calibration is intentional and narrow
+- The simplified visible Outline control surface
 - Broad `app.js` refactor
 
 ## Likely Next Priorities
 
 1. Keep using the app on real painting references.
 2. Fix only concrete regressions or repeated workflow friction.
-3. Make small UI polish changes only where the current layout gets in the way.
-4. Keep docs aligned when behavior or wording changes.
-5. Revisit refactor planning only after more stable usage feedback.
+3. Calibrate outline recipes only when real examples justify it.
+4. Make small UI polish changes only where the current layout gets in the way.
+5. Keep docs aligned when behavior or wording changes.
+6. Revisit refactor planning only after more stable usage feedback.

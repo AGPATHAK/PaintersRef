@@ -1,24 +1,24 @@
 # Issues Backlog
 
-Focused backlog from the current stable V5.2 checkpoint after issue-081 and issue-082.
+Focused backlog from the current stable V5.2 checkpoint after the workflow/sidebar, outline, vocabulary, and layout cleanup passes.
 
-Completed composition cleanup, painting layout cleanup, outline calibration, and warm/cool/neutral calibration items have been removed from this list. Keep this backlog practical and grounded in real usage.
+Completed workflow-stage reorganization, Squint-to-Painting regrouping, curated outline presets, painter-facing vocabulary cleanup, and recent spacing/layout polish have been removed from the active backlog.
 
 ## Near Term
 
 | Priority | Type | Title | Size | Depends On | Acceptance Criteria |
 |---|---|---|---|---|---|
-| P1 high | test | Continue real painting-use validation | M | Current stable app | Composition, drawing, painting, preview, and export workflows hold up during normal reference-prep sessions. |
+| P1 high | test | Continue real painting-use validation | M | Current stable app | Composition, Drawing, Painting, Export, and Info workflows hold up during normal reference-prep sessions. |
 | P1 high | bug | Fix regressions found during real use | S/M | As discovered | Stable workflow remains intact after narrow bug fixes. |
-| P1 high | docs | Keep README and docs aligned with V5.2 workflow | S | Any wording or behavior changes | Public-facing docs accurately describe current view export, previews, and the 3-sheet workflow. |
-| P2 medium | ux | Small UI aesthetics and spacing polish pass | M | Stable usage feedback | Interface looks cleaner and more intentional without changing the current workflow model. |
+| P1 high | docs | Keep docs aligned with current UI vocabulary | S | Any wording or behavior changes | Public-facing docs accurately describe current stage structure, exports, and terminology. |
 | P2 medium | ux | Review small-screen and iPad layout behavior | M | Stable usage feedback | The current control hierarchy remains usable on narrower screens and tablets. |
-| P2 medium | test | Refresh manual smoke-test notes if workflow changes | S | Any future UI or export adjustment | Smoke checklist reflects current composition, drawing, painting, preview, and export behavior. |
+| P2 medium | test | Refresh manual smoke-test notes | S | Current workflow settled | Smoke checklist reflects Reference Image, Composition, Drawing, Painting, Export, and Info. |
 
 ## Later / Nice To Have
 
 | Priority | Type | Title | Size | Depends On | Acceptance Criteria |
 |---|---|---|---|---|---|
+| P2 medium | calibration | Tune outline recipes only from real reference feedback | S/M | More real usage | Simple / Balanced / Detailed remain useful across common painting subjects without adding visible controls. |
 | P2 medium | refactor | Re-enter refactor planning only after workflow stabilizes | S | More real usage | Refactor work is scoped from observed needs, not from code size alone. |
 | P2 medium | refactor | Isolate export/sheet builder logic when safe | M | Refactor re-entry conditions met | Sheet building can be maintained more easily without changing output behavior. |
 | P2 medium | refactor | Separate deterministic processors from UI/runtime code | L | Stronger regression safety | Behavior remains unchanged while processing helpers gain clearer boundaries. |
@@ -28,5 +28,8 @@ Completed composition cleanup, painting layout cleanup, outline calibration, and
 
 ## Recently Completed
 
-- issue-081: composition guidance visibility, crop slider responsiveness, painting layout cleanup, drawing button layout cleanup, and Temperature Study / Palette Notes separation
-- issue-082: outline preset calibration and warm/cool/neutral temperature grouping calibration
+- issue-088: workflow-stage sidebar reorganization
+- issue-091: curated outline presets and simplified visible Outline controls
+- issue-092: Squint moved to Painting and Painting button layout cleaned up
+- issue-093: painter-facing vocabulary cleanup and Drawing outline spacing polish
+- issue-094: current documentation cleanup pass
