@@ -135,35 +135,8 @@
           </button>
           <div class="stage-body" data-stage-body="drawing">
             <div class="view-mode-grid painting-view-grid">
-              <button type="button" class="view-mode-button" data-view-mode="squint">Squint</button>
               <button type="button" class="view-mode-button" data-view-mode="outlineSketch">Outline Sketch</button>
               <button type="button" class="view-mode-button" data-view-mode="mirror">Mirror Check</button>
-            </div>
-            <div id="squintControlsSection" class="mode-detail is-hidden">
-              <div class="detail-header-row">
-                <h3>Squint Controls</h3>
-                <span class="detail-status-label">Value Mass Study</span>
-              </div>
-              <div class="field">
-                <label for="squintBlurInput">Squint Softness</label>
-                <input
-                  id="squintBlurInput"
-                  type="range"
-                  min="0"
-                  max="100"
-                  value="35"
-                  list="squintBlurMarkers"
-                />
-                <datalist id="squintBlurMarkers">
-                  <option value="20" label="Gentle"></option>
-                  <option value="35" label="Standard"></option>
-                  <option value="65" label="Soft"></option>
-                </datalist>
-                <p id="squintBlurValue" class="slider-value">35%</p>
-              </div>
-              <p class="helper-text">
-                Softens and groups grayscale values for the Squint view.
-              </p>
             </div>
             <div id="outlineControlsSection" class="mode-detail">
               <div class="detail-header-row">
@@ -201,6 +174,7 @@
           </button>
           <div class="stage-body" data-stage-body="painting">
             <div class="view-mode-grid painting-view-grid">
+              <button type="button" class="view-mode-button" data-view-mode="squint">Squint</button>
               <button type="button" class="view-mode-button" data-view-mode="grayscale">Grayscale</button>
               <button type="button" class="view-mode-button" data-view-mode="notan">3-Value Notan</button>
               <button type="button" class="view-mode-button" data-view-mode="lightMask">Light Mask</button>
@@ -208,6 +182,32 @@
               <button type="button" class="view-mode-button" data-view-mode="shadowMask">Shadow Mask</button>
               <button type="button" class="view-mode-button" data-view-mode="temperatureStudy">Temperature Study</button>
               <button type="button" class="view-mode-button" data-view-mode="paletteStudy">Palette Notes</button>
+            </div>
+            <div id="squintControlsSection" class="mode-detail is-hidden">
+              <div class="detail-header-row">
+                <h3>Squint Controls</h3>
+                <span class="detail-status-label">Value Mass Study</span>
+              </div>
+              <div class="field">
+                <label for="squintBlurInput">Squint Softness</label>
+                <input
+                  id="squintBlurInput"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value="35"
+                  list="squintBlurMarkers"
+                />
+                <datalist id="squintBlurMarkers">
+                  <option value="20" label="Gentle"></option>
+                  <option value="35" label="Standard"></option>
+                  <option value="65" label="Soft"></option>
+                </datalist>
+                <p id="squintBlurValue" class="slider-value">35%</p>
+              </div>
+              <p class="helper-text">
+                Softens and groups grayscale values for the Squint view.
+              </p>
             </div>
             <div id="notanControlsSection" class="mode-detail is-hidden">
               <div class="detail-header-row">
