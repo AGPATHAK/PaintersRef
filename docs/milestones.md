@@ -17,7 +17,7 @@ Practical milestone record for the current Painter's Reference Lab state.
 
 ### Outcome
 
-M1 ended with a usable, stable deterministic foundation and a clear decision to defer deeper refactoring until workflow value is better validated through real use.
+M1 ended with a usable deterministic foundation and a clear decision to defer deeper refactoring until workflow value is better validated through real use.
 
 ## M2 Workflow UX Upgrade
 
@@ -26,37 +26,53 @@ M1 ended with a usable, stable deterministic foundation and a clear decision to 
 ### Completed in M2
 
 - Tinted tonal-mask workflow stabilized
-- Outline detail presets clarified into bounded Low / Medium / High detail
-- Export Current View exposed as a visible top-level action
+- Export Current View exposed as a visible action
 - 3-sheet preview/export workflow implemented
-- Previews stage simplified so it opens directly into the prepared sheet workflow
+- Export stage contains current-view export plus sheet preview/export controls
 - Composition guidance visibility improved
 - Composition crop-size slider behavior fixed so all intended previews respond
 - Selected composition crop remains aligned with the clicked preview
-- Painting-mode button layout cleaned up
-- Drawing-mode button layout corrected after painting layout cleanup
-- Temperature Study and Palette Notes visually separated in the painting controls
-- Outline presets recalibrated for cleaner rough sketches
+- Sidebar reorganized into Reference Image, Composition, Drawing, Painting, Export, and Info
+- Squint moved to Painting
+- Drawing focused on Outline Sketch, Mirror Check, Outline Source, and outline detail
+- Outline Source selection added: Gray, Squint, Original, Notan
+- Extra visible outline-local controls removed
+- Curated outline recipes added behind Simple / Balanced / Detailed detail
+- Vocabulary cleanup completed:
+  - Squint Softness
+  - Simple / Balanced / Detailed
+  - Reset to Standard
+  - Focus on Color
+- Painting button layout cleaned up for current sidebar width
+- Drawing outline-control spacing polished
 - Warm/cool/neutral temperature grouping calibrated to reduce near-neutral misclassification
 
 ### Current M2 Product State
 
+- **Reference Image**
+  - Image loading and change flow
+  - Grid toggle, rows, and columns
 - **Composition**
   - Focal-point crop studies
   - Adjustable crop size
   - Original or selected crop can become the working reference
 - **Drawing**
-  - Rough outline sketch with calibrated Low / Medium / High presets
+  - Outline Sketch
   - Mirror Check
+  - Outline Source
+  - Simple / Balanced / Detailed outline detail
 - **Painting**
+  - Squint and Squint Softness
   - Grayscale
   - 3-Value Notan
   - Light / Midtone / Shadow masks
-  - Warm / Cool / Neutral temperature study
+  - Temperature Study
   - Palette Notes
-- **Exports**
+- **Export**
   - Export Current View
   - Sheet preview/export workflow
+- **Info**
+  - Compact status and image/view metadata
 
 ### Current 3-Sheet Workflow
 
