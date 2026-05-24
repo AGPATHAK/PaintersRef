@@ -8,7 +8,7 @@ It supports a simple studio workflow: choose a reference image, test composition
 
 GitHub Pages deployment:
 
-[https://agpathak.github.io/PaintersRef_v5.2/](https://agpathak.github.io/PaintersRef_v5.2/)
+https://agpathak.github.io/PaintersRef/
 
 ## What It Does
 
