@@ -833,51 +833,55 @@ function createPaletteStudyCanvas(sourceCanvas, paletteColors, mixNotes = null) 
    Outline sketch processing
 --------------------------------- */
 
-function getOutlinePresetSettings(detailLevel) {
-  const presets = {
-    low: {
-      label: "Low",
-      sensitivity: 24,
-      smoothing: 3
+function getOutlinePresetSettings(detailLevel, sourceKey = "gray") {
+  const presetsBySource = {
+    original: {
+      low: { label: "Low", sensitivity: 20, smoothing: 3, sourcePrep: {} },
+      medium: { label: "Medium", sensitivity: 44, smoothing: 2, sourcePrep: {} },
+      high: { label: "High", sensitivity: 70, smoothing: 1, sourcePrep: {} }
     },
-    medium: {
-      label: "Medium",
-      sensitivity: 52,
-      smoothing: 2
+    gray: {
+      low: { label: "Low", sensitivity: 24, smoothing: 3, sourcePrep: { graySimplification: 12 } },
+      medium: { label: "Medium", sensitivity: 52, smoothing: 2, sourcePrep: { graySimplification: 0 } },
+      high: { label: "High", sensitivity: 82, smoothing: 1, sourcePrep: { graySimplification: 0 } }
     },
-    high: {
-      label: "High",
-      sensitivity: 82,
-      smoothing: 1
+    squint: {
+      low: { label: "Low", sensitivity: 24, smoothing: 3, sourcePrep: { squintSoftness: 70 } },
+      medium: { label: "Medium", sensitivity: 48, smoothing: 2, sourcePrep: { squintSoftness: 50 } },
+      high: { label: "High", sensitivity: 74, smoothing: 1, sourcePrep: { squintSoftness: 32 } }
+    },
+    notan: {
+      low: {
+        label: "Low",
+        sensitivity: 18,
+        smoothing: 3,
+        sourcePrep: { notanShadowCutoff: 105, notanLightCutoff: 150 }
+      },
+      medium: {
+        label: "Medium",
+        sensitivity: 36,
+        smoothing: 2,
+        sourcePrep: { notanShadowCutoff: 90, notanLightCutoff: 165 }
+      },
+      high: {
+        label: "High",
+        sensitivity: 58,
+        smoothing: 1,
+        sourcePrep: { notanShadowCutoff: 75, notanLightCutoff: 180 }
+      }
     }
   };
 
+  const presets = presetsBySource[sourceKey] || presetsBySource.gray;
   return presets[detailLevel] || presets.medium;
 }
 
 function getMatchingOutlinePresetKey(outlineOptions) {
-  const presetKeys = ["low", "medium", "high"];
-
-  for (const presetKey of presetKeys) {
-    const preset = getOutlinePresetSettings(presetKey);
-    if (
-      preset.sensitivity === outlineOptions.sensitivity &&
-      preset.smoothing === outlineOptions.smoothing
-    ) {
-      return presetKey;
-    }
-  }
-
-  return null;
+  return outlineOptions.detail || "medium";
 }
 
 function getOutlineDisplayLabel(outlineOptions) {
-  const presetKey = getMatchingOutlinePresetKey(outlineOptions);
-  if (presetKey) {
-    return getOutlinePresetSettings(presetKey).label;
-  }
-
-  return "Custom";
+  return getOutlinePresetSettings(getMatchingOutlinePresetKey(outlineOptions)).label;
 }
 
 function getOutlineRenderSettings(outlineOptions) {
@@ -1454,22 +1458,8 @@ class PaintersReferenceApp {
       outlineControlsSection: document.getElementById("outlineControlsSection"),
       outlinePresetLabel: document.getElementById("outlinePresetLabel"),
       outlineSourceInput: document.getElementById("outlineSourceInput"),
-      outlineSensitivityInput: document.getElementById("outlineSensitivityInput"),
-      outlineSensitivityValue: document.getElementById("outlineSensitivityValue"),
-      outlineSmoothingInput: document.getElementById("outlineSmoothingInput"),
-      outlineSmoothingValue: document.getElementById("outlineSmoothingValue"),
+      outlineSourceHelpText: document.getElementById("outlineSourceHelpText"),
       outlinePresetButtons: Array.from(document.querySelectorAll("[data-outline-preset]")),
-      outlineGrayControls: document.getElementById("outlineGrayControls"),
-      outlineGraySimplifyInput: document.getElementById("outlineGraySimplifyInput"),
-      outlineGraySimplifyValue: document.getElementById("outlineGraySimplifyValue"),
-      outlineSquintControls: document.getElementById("outlineSquintControls"),
-      outlineSquintSoftnessInput: document.getElementById("outlineSquintSoftnessInput"),
-      outlineSquintSoftnessValue: document.getElementById("outlineSquintSoftnessValue"),
-      outlineNotanControls: document.getElementById("outlineNotanControls"),
-      outlineNotanShadowCutoffInput: document.getElementById("outlineNotanShadowCutoffInput"),
-      outlineNotanShadowCutoffValue: document.getElementById("outlineNotanShadowCutoffValue"),
-      outlineNotanLightCutoffInput: document.getElementById("outlineNotanLightCutoffInput"),
-      outlineNotanLightCutoffValue: document.getElementById("outlineNotanLightCutoffValue"),
       squintControlsSection: document.getElementById("squintControlsSection"),
       squintBlurInput: document.getElementById("squintBlurInput"),
       squintBlurValue: document.getElementById("squintBlurValue"),
@@ -1530,6 +1520,7 @@ class PaintersReferenceApp {
       activeStage: "baseline",
       outline: {
         source: "gray",
+        detail: "medium",
         sensitivity: 52,
         smoothing: 2
       },
@@ -1717,94 +1708,15 @@ class PaintersReferenceApp {
       this.renderScene();
     });
 
-    this.dom.outlineSensitivityInput.addEventListener("input", () => {
-      this.state.outline.sensitivity = this.getSafeInteger(
-        this.dom.outlineSensitivityInput.value,
-        60,
-        10,
-        120
-      );
-      this.refreshOutlineCanvas();
-      this.updateOutlineControls();
-      this.renderScene();
-    });
-
     if (this.dom.outlineSourceInput) {
       this.dom.outlineSourceInput.addEventListener("change", () => {
         this.state.outline.source = this.dom.outlineSourceInput.value || "gray";
+        this.applyOutlineDetailPreset(this.state.outline.detail || "medium");
         this.refreshOutlineCanvas();
         this.updateOutlineControls();
         this.renderScene();
       });
     }
-
-    this.dom.outlineSmoothingInput.addEventListener("input", () => {
-      this.state.outline.smoothing = this.getSafeInteger(
-        this.dom.outlineSmoothingInput.value,
-        1,
-        0,
-        3
-      );
-      this.refreshOutlineCanvas();
-      this.updateOutlineControls();
-      this.renderScene();
-    });
-
-    this.dom.outlineGraySimplifyInput.addEventListener("input", () => {
-      this.state.outlineSource.graySimplification = this.getSafeInteger(
-        this.dom.outlineGraySimplifyInput.value,
-        0,
-        0,
-        100
-      );
-      this.refreshOutlineCanvas();
-      this.updateOutlineControls();
-      this.renderScene();
-    });
-
-    this.dom.outlineSquintSoftnessInput.addEventListener("input", () => {
-      this.state.outlineSource.squintSoftness = this.getSafeInteger(
-        this.dom.outlineSquintSoftnessInput.value,
-        35,
-        0,
-        100
-      );
-      this.refreshOutlineCanvas();
-      this.updateOutlineControls();
-      this.renderScene();
-    });
-
-    this.dom.outlineNotanShadowCutoffInput.addEventListener("input", () => {
-      const nextShadowCutoff = this.getSafeInteger(
-        this.dom.outlineNotanShadowCutoffInput.value,
-        85,
-        0,
-        245
-      );
-      this.state.outlineSource.notanShadowCutoff = Math.min(
-        nextShadowCutoff,
-        this.state.outlineSource.notanLightCutoff - this.state.outlineSource.minimumGap
-      );
-      this.refreshOutlineCanvas();
-      this.updateOutlineControls();
-      this.renderScene();
-    });
-
-    this.dom.outlineNotanLightCutoffInput.addEventListener("input", () => {
-      const nextLightCutoff = this.getSafeInteger(
-        this.dom.outlineNotanLightCutoffInput.value,
-        170,
-        10,
-        255
-      );
-      this.state.outlineSource.notanLightCutoff = Math.max(
-        nextLightCutoff,
-        this.state.outlineSource.notanShadowCutoff + this.state.outlineSource.minimumGap
-      );
-      this.refreshOutlineCanvas();
-      this.updateOutlineControls();
-      this.renderScene();
-    });
 
     this.dom.squintBlurInput.addEventListener("input", () => {
       this.state.squint.softness = this.getSafeInteger(
@@ -1909,9 +1821,7 @@ class PaintersReferenceApp {
           return;
         }
 
-        const preset = getOutlinePresetSettings(presetKey);
-        this.state.outline.sensitivity = preset.sensitivity;
-        this.state.outline.smoothing = preset.smoothing;
+        this.applyOutlineDetailPreset(presetKey);
         this.refreshOutlineCanvas();
         this.updateOutlineControls();
         this.renderScene();
@@ -2155,32 +2065,43 @@ class PaintersReferenceApp {
     this.updateStudySheetPreviewControls();
   }
 
+  applyOutlineDetailPreset(detailLevel) {
+    const sourceKey = this.state.outline.source || "gray";
+    const preset = getOutlinePresetSettings(detailLevel, sourceKey);
+    this.state.outline.detail = detailLevel;
+    this.state.outline.sensitivity = preset.sensitivity;
+    this.state.outline.smoothing = preset.smoothing;
+
+    if (Object.prototype.hasOwnProperty.call(preset.sourcePrep, "graySimplification")) {
+      this.state.outlineSource.graySimplification = preset.sourcePrep.graySimplification;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(preset.sourcePrep, "squintSoftness")) {
+      this.state.outlineSource.squintSoftness = preset.sourcePrep.squintSoftness;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(preset.sourcePrep, "notanShadowCutoff")) {
+      this.state.outlineSource.notanShadowCutoff = preset.sourcePrep.notanShadowCutoff;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(preset.sourcePrep, "notanLightCutoff")) {
+      this.state.outlineSource.notanLightCutoff = preset.sourcePrep.notanLightCutoff;
+    }
+  }
+
   updateOutlineControls() {
     if (this.dom.outlineSourceInput) {
       this.dom.outlineSourceInput.value = this.state.outline.source || "gray";
     }
-    this.dom.outlineSensitivityInput.value = this.state.outline.sensitivity;
-    this.dom.outlineSmoothingInput.value = this.state.outline.smoothing;
-    this.dom.outlineSensitivityValue.textContent = `${this.state.outline.sensitivity}`;
-    this.dom.outlineSmoothingValue.textContent =
-      `${this.state.outline.smoothing} ${this.state.outline.smoothing === 1 ? "pass" : "passes"}`;
-    this.dom.outlineGraySimplifyInput.value = this.state.outlineSource.graySimplification;
-    this.dom.outlineGraySimplifyValue.textContent =
-      `${this.state.outlineSource.graySimplification}%`;
-    this.dom.outlineSquintSoftnessInput.value = this.state.outlineSource.squintSoftness;
-    this.dom.outlineSquintSoftnessValue.textContent =
-      `${this.state.outlineSource.squintSoftness}%`;
-    this.dom.outlineNotanShadowCutoffInput.value = this.state.outlineSource.notanShadowCutoff;
-    this.dom.outlineNotanLightCutoffInput.value = this.state.outlineSource.notanLightCutoff;
-    this.dom.outlineNotanShadowCutoffValue.textContent =
-      `${this.state.outlineSource.notanShadowCutoff}`;
-    this.dom.outlineNotanLightCutoffValue.textContent =
-      `${this.state.outlineSource.notanLightCutoff}`;
 
     const sourceKey = this.state.outline.source || "gray";
-    this.dom.outlineGrayControls.classList.toggle("is-hidden", sourceKey !== "gray");
-    this.dom.outlineSquintControls.classList.toggle("is-hidden", sourceKey !== "squint");
-    this.dom.outlineNotanControls.classList.toggle("is-hidden", sourceKey !== "notan");
+    const sourceHelpText = {
+      gray: "Gray uses a curated grayscale outline recipe.",
+      original: "Original uses a curated outline recipe from the color source.",
+      squint: "Squint uses hidden shape simplification tuned by detail.",
+      notan: "Notan uses hidden mass grouping tuned by detail."
+    };
+    this.dom.outlineSourceHelpText.textContent = sourceHelpText[sourceKey] || sourceHelpText.gray;
 
     const activePresetKey = getMatchingOutlinePresetKey(this.state.outline);
     this.dom.outlinePresetLabel.textContent =
