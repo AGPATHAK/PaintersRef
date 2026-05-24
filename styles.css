@@ -587,12 +587,21 @@ input[type="range"]::-moz-range-thumb {
 }
 
 #outlineControlsSection .field {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+#outlineControlsSection select {
+  margin-bottom: 2px;
+}
+
+#outlineControlsSection .helper-text {
+  margin-top: 7px;
+  line-height: 1.36;
 }
 
 #outlineControlsSection .preset-button-row {
-  gap: 11px;
-  margin-bottom: 12px;
+  gap: 9px;
+  margin: 2px 0 6px;
 }
 
 .detail-header-row {

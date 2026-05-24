@@ -836,35 +836,35 @@ function createPaletteStudyCanvas(sourceCanvas, paletteColors, mixNotes = null) 
 function getOutlinePresetSettings(detailLevel, sourceKey = "gray") {
   const presetsBySource = {
     original: {
-      low: { label: "Low", sensitivity: 20, smoothing: 3, sourcePrep: {} },
-      medium: { label: "Medium", sensitivity: 44, smoothing: 2, sourcePrep: {} },
-      high: { label: "High", sensitivity: 70, smoothing: 1, sourcePrep: {} }
+      low: { label: "Simple", sensitivity: 20, smoothing: 3, sourcePrep: {} },
+      medium: { label: "Balanced", sensitivity: 44, smoothing: 2, sourcePrep: {} },
+      high: { label: "Detailed", sensitivity: 70, smoothing: 1, sourcePrep: {} }
     },
     gray: {
-      low: { label: "Low", sensitivity: 24, smoothing: 3, sourcePrep: { graySimplification: 12 } },
-      medium: { label: "Medium", sensitivity: 52, smoothing: 2, sourcePrep: { graySimplification: 0 } },
-      high: { label: "High", sensitivity: 82, smoothing: 1, sourcePrep: { graySimplification: 0 } }
+      low: { label: "Simple", sensitivity: 24, smoothing: 3, sourcePrep: { graySimplification: 12 } },
+      medium: { label: "Balanced", sensitivity: 52, smoothing: 2, sourcePrep: { graySimplification: 0 } },
+      high: { label: "Detailed", sensitivity: 82, smoothing: 1, sourcePrep: { graySimplification: 0 } }
     },
     squint: {
-      low: { label: "Low", sensitivity: 24, smoothing: 3, sourcePrep: { squintSoftness: 70 } },
-      medium: { label: "Medium", sensitivity: 48, smoothing: 2, sourcePrep: { squintSoftness: 50 } },
-      high: { label: "High", sensitivity: 74, smoothing: 1, sourcePrep: { squintSoftness: 32 } }
+      low: { label: "Simple", sensitivity: 24, smoothing: 3, sourcePrep: { squintSoftness: 70 } },
+      medium: { label: "Balanced", sensitivity: 48, smoothing: 2, sourcePrep: { squintSoftness: 50 } },
+      high: { label: "Detailed", sensitivity: 74, smoothing: 1, sourcePrep: { squintSoftness: 32 } }
     },
     notan: {
       low: {
-        label: "Low",
+        label: "Simple",
         sensitivity: 18,
         smoothing: 3,
         sourcePrep: { notanShadowCutoff: 105, notanLightCutoff: 150 }
       },
       medium: {
-        label: "Medium",
+        label: "Balanced",
         sensitivity: 36,
         smoothing: 2,
         sourcePrep: { notanShadowCutoff: 90, notanLightCutoff: 165 }
       },
       high: {
-        label: "High",
+        label: "Detailed",
         sensitivity: 58,
         smoothing: 1,
         sourcePrep: { notanShadowCutoff: 75, notanLightCutoff: 180 }
