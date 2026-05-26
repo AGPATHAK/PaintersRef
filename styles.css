@@ -536,7 +536,10 @@ input[type="range"]::-moz-range-thumb {
 }
 
 [data-stage-section="drawing"] .painting-view-grid .view-mode-button {
-  padding-inline: 8px;
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  line-height: 1.16;
   white-space: nowrap;
 }
 
@@ -600,8 +603,16 @@ input[type="range"]::-moz-range-thumb {
 }
 
 #outlineControlsSection .preset-button-row {
-  gap: 9px;
+  gap: 7px;
   margin: 2px 0 6px;
+}
+
+#outlineControlsSection .outline-preset-button {
+  min-height: 34px;
+  padding: 7px 6px;
+  font-size: 0.76rem;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 .detail-header-row {
@@ -711,6 +722,7 @@ button {
   color: var(--text);
   font: inherit;
   font-weight: 600;
+  line-height: 1.18;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
