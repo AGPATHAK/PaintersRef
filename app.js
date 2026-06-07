@@ -24,7 +24,7 @@
    App Configuration / Constants
    ================================================== */
 
-const APP_VERSION_LABEL = "V2 build 25";
+const APP_VERSION_LABEL = "V2 build 28";
 const SUPPORTED_TYPES = ["image/jpeg", "image/png"];
 
 const COMPOSITION_CROP_OPTIONS = [
@@ -476,6 +476,9 @@ class PaintersReferenceApp {
       outlineSourceInput: document.getElementById("outlineSourceInput"),
       outlineSourceHelpText: document.getElementById("outlineSourceHelpText"),
       outlinePresetButtons: Array.from(document.querySelectorAll("[data-outline-preset]")),
+      valueContourControlsSection: document.getElementById("valueContourControlsSection"),
+      valueContourDetailLabel: document.getElementById("valueContourDetailLabel"),
+      valueContourDetailButtons: Array.from(document.querySelectorAll("[data-value-contour-detail]")),
       squintControlsSection: document.getElementById("squintControlsSection"),
       squintBlurInput: document.getElementById("squintBlurInput"),
       squintBlurValue: document.getElementById("squintBlurValue"),
@@ -553,6 +556,9 @@ class PaintersReferenceApp {
       squint: {
         softness: 35
       },
+      valueContour: {
+        detail: "medium"
+      },
       stageSelections: {
         baseline: "original",
         composition: "focalStudy",
@@ -594,6 +600,7 @@ class PaintersReferenceApp {
         coolMaskCanvas: null,
         neutralMaskCanvas: null,
         colorStudyCanvas: null,
+        valueContourCanvas: null,
         outlineSketchCanvas: null,
         squintCanvas: null,
         mirrorCanvas: null,
@@ -675,6 +682,7 @@ class PaintersReferenceApp {
       focalStudy: "composition",
       squint: "painting",
       outlineSketch: "drawing",
+      valueContours: "drawing",
       mirror: "drawing",
       grayscale: "painting",
       notan: "painting",
@@ -827,6 +835,21 @@ class PaintersReferenceApp {
       });
     }
 
+    this.dom.valueContourDetailButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const detail = button.dataset.valueContourDetail;
+        if (!detail) {
+          return;
+        }
+
+        this.state.valueContour.detail = detail;
+        this.refreshValueContourCanvas();
+        this.updateValueContourControls();
+        this.updateStagePanels();
+        this.renderScene();
+      });
+    });
+
     this.dom.focalRadiusInput.addEventListener("input", () => {
       this.state.focalStudy.cropPercent = this.getSafeInteger(
         this.dom.focalRadiusInput.value,
@@ -967,6 +990,7 @@ class PaintersReferenceApp {
     this.updateStagePanels();
     this.updateOutlineDetailLabel();
     this.updateOutlineControls();
+    this.updateValueContourControls();
     this.updateSquintControls();
     this.updateNotanControls();
     this.updateTemperatureControls();
@@ -1007,6 +1031,7 @@ class PaintersReferenceApp {
       colorStudy: "Color Study",
       paletteStudy: "Palette Notes",
       outlineSketch: "Rough Outline Sketch",
+      valueContours: "Value Contours",
       squint: "Squint",
       mirror: "Mirror Check"
     };
@@ -1017,6 +1042,10 @@ class PaintersReferenceApp {
   getDrawingViewLabel(viewMode = this.state.stageSelections.drawing) {
     if (viewMode === "outlineSketch") {
       return `Outline (${getOutlineDisplayLabel(this.state.outline)})`;
+    }
+
+    if (viewMode === "valueContours") {
+      return `Value Contours (${getValueContourDisplayLabel(this.state.valueContour.detail)})`;
     }
 
     if (viewMode === "mirror") {
@@ -1063,6 +1092,7 @@ class PaintersReferenceApp {
       original: "Original",
       focalStudy: "Focal Study",
       outlineSketch: "Rough Outline",
+      valueContours: "Value Contours",
       squint: "Squint",
       mirror: "Mirror Check",
       grayscale: "Grayscale",
@@ -1092,6 +1122,10 @@ class PaintersReferenceApp {
     const isOutlineActive =
       this.state.activeStage === "drawing" && this.state.viewMode === "outlineSketch";
     this.dom.outlineControlsSection.classList.toggle("is-hidden", !isOutlineActive);
+
+    const isValueContourActive =
+      this.state.activeStage === "drawing" && this.state.viewMode === "valueContours";
+    this.dom.valueContourControlsSection.classList.toggle("is-hidden", !isValueContourActive);
 
     const isSquintActive =
       this.state.activeStage === "painting" && this.state.viewMode === "squint";
@@ -1157,6 +1191,17 @@ class PaintersReferenceApp {
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
     this.updateRangeFills();
+  }
+
+  updateValueContourControls() {
+    const detail = this.state.valueContour.detail || "medium";
+    this.dom.valueContourDetailLabel.textContent = getValueContourDisplayLabel(detail);
+
+    this.dom.valueContourDetailButtons.forEach((button) => {
+      const isActive = button.dataset.valueContourDetail === detail;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
   }
 
   updateNotanControls() {
@@ -1330,6 +1375,17 @@ class PaintersReferenceApp {
     this.refreshMirrorCanvas();
   }
 
+  refreshValueContourCanvas() {
+    if (!this.state.processed.grayscaleCanvas) {
+      return;
+    }
+
+    this.state.processed.valueContourCanvas = createValueContourCanvasFromGrayscaleCanvas(
+      this.state.processed.grayscaleCanvas,
+      this.state.valueContour
+    );
+  }
+
   refreshSquintCanvas() {
     if (!this.state.processed.grayscaleCanvas) {
       return;
@@ -1353,6 +1409,7 @@ class PaintersReferenceApp {
 
   refreshDrawingDerivedCanvases() {
     this.refreshMirrorCanvas();
+    this.refreshValueContourCanvas();
     this.refreshSquintCanvas();
   }
 
@@ -1428,6 +1485,10 @@ class PaintersReferenceApp {
       originalCanvas,
       this.state.colorStudy.preset
     );
+    const valueContourCanvas = createValueContourCanvasFromGrayscaleCanvas(
+      grayscaleCanvas,
+      this.state.valueContour
+    );
 
     const squintCanvas = createSquintCanvasFromGrayscaleCanvas(grayscaleCanvas, this.state.squint);
     const outlineSourceCanvas = this.getOutlineSourceCanvasFromCanvases({
@@ -1454,6 +1515,7 @@ class PaintersReferenceApp {
     this.state.processed.coolMaskCanvas = coolMaskCanvas;
     this.state.processed.neutralMaskCanvas = neutralMaskCanvas;
     this.state.processed.colorStudyCanvas = colorStudyCanvas;
+    this.state.processed.valueContourCanvas = valueContourCanvas;
     this.state.processed.outlineSketchCanvas = outlineSketchCanvas;
     this.state.processed.squintCanvas = squintCanvas;
     this.state.processed.mirrorCanvas = mirrorCanvas;
@@ -1612,6 +1674,7 @@ class PaintersReferenceApp {
       midtoneMask: this.state.processed.midtoneMaskCanvas,
       shadowMask: this.state.processed.shadowMaskCanvas,
       colorStudy: this.state.processed.colorStudyCanvas,
+      valueContours: this.state.processed.valueContourCanvas,
       outlineSketch: this.getActiveOutlineCanvas(),
       squint: this.state.processed.squintCanvas,
       mirror: this.state.processed.mirrorCanvas,

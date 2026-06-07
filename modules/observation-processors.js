@@ -183,6 +183,115 @@ function createOutlineSketchCanvasFromGrayscaleCanvas(grayscaleCanvas, outlineOp
   return outputCanvas;
 }
 
+function getValueContourDetailSettings(detailLevel) {
+  const settings = {
+    low: {
+      label: "Simple",
+      blurPasses: 3,
+      valueLevels: 3,
+      compareDistance: 3,
+      lineValue: 42,
+      thickness: 2
+    },
+    medium: {
+      label: "Balanced",
+      blurPasses: 2,
+      valueLevels: 4,
+      compareDistance: 2,
+      lineValue: 32,
+      thickness: 1
+    },
+    high: {
+      label: "Detailed",
+      blurPasses: 1,
+      valueLevels: 5,
+      compareDistance: 1,
+      lineValue: 24,
+      thickness: 1
+    }
+  };
+
+  return settings[detailLevel] || settings.medium;
+}
+
+function getValueContourDisplayLabel(detailLevel) {
+  return getValueContourDetailSettings(detailLevel).label;
+}
+
+function createValueContourCanvasFromGrayscaleCanvas(grayscaleCanvas, options = {}) {
+  const settings = getValueContourDetailSettings(options.detail || "medium");
+  const blurredCanvas = createBlurredGrayscaleCanvas(grayscaleCanvas, settings.blurPasses);
+  const width = blurredCanvas.width;
+  const height = blurredCanvas.height;
+
+  const sourceCtx = blurredCanvas.getContext("2d", { willReadFrequently: true });
+  const sourceImageData = sourceCtx.getImageData(0, 0, width, height);
+  const src = sourceImageData.data;
+
+  const outputCanvas = createOffscreenCanvas(width, height);
+  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+  const outputImageData = outputCtx.createImageData(width, height);
+  const out = outputImageData.data;
+
+  const maxLevelIndex = settings.valueLevels - 1;
+  const quantizeGray = (gray) => Math.round((gray / 255) * maxLevelIndex);
+  const setLinePixel = (x, y, value) => {
+    if (x < 0 || y < 0 || x >= width || y >= height) {
+      return;
+    }
+
+    const index = (y * width + x) * 4;
+    out[index] = Math.min(out[index], value);
+    out[index + 1] = Math.min(out[index + 1], value);
+    out[index + 2] = Math.min(out[index + 2], value);
+  };
+  const getGrayAt = (x, y) => {
+    const clampedX = Math.max(0, Math.min(width - 1, x));
+    const clampedY = Math.max(0, Math.min(height - 1, y));
+    const index = (clampedY * width + clampedX) * 4;
+    return src[index];
+  };
+
+  for (let i = 0; i < out.length; i += 4) {
+    out[i] = 255;
+    out[i + 1] = 255;
+    out[i + 2] = 255;
+    out[i + 3] = 255;
+  }
+
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const gray = getGrayAt(x, y);
+      const currentLevel = quantizeGray(gray);
+      const rightGray = getGrayAt(x + settings.compareDistance, y);
+      const lowerGray = getGrayAt(x, y + settings.compareDistance);
+      const rightLevel = quantizeGray(rightGray);
+      const lowerLevel = quantizeGray(lowerGray);
+      const horizontalLevelGap = Math.abs(currentLevel - rightLevel);
+      const verticalLevelGap = Math.abs(currentLevel - lowerLevel);
+      const strongestLevelGap = Math.max(horizontalLevelGap, verticalLevelGap);
+
+      if (strongestLevelGap < 1) {
+        continue;
+      }
+
+      const outputValue = strongestLevelGap > 1
+        ? settings.lineValue
+        : clamp(settings.lineValue + 38, 0, 150);
+
+      setLinePixel(x, y, outputValue);
+
+      if (settings.thickness > 1) {
+        setLinePixel(x + 1, y, outputValue);
+        setLinePixel(x, y + 1, outputValue);
+      }
+    }
+  }
+
+  outputCtx.putImageData(outputImageData, 0, 0);
+  return outputCanvas;
+}
+
 function createMirroredCanvasFromCanvas(sourceCanvas) {
   const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
   const outputCtx = outputCanvas.getContext("2d");
