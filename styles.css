@@ -107,7 +107,8 @@ body {
   min-width: 0;
 }
 
-.header-file-chip {
+.header-file-chip,
+.app-version-chip {
   max-width: min(340px, 34vw);
   overflow: hidden;
   padding: 7px 10px;
@@ -119,6 +120,12 @@ body {
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.app-version-chip {
+  max-width: none;
+  background: var(--accent-soft);
+  color: var(--text-primary);
 }
 
 .header-file-chip.is-hidden {
@@ -496,6 +503,7 @@ input[type="range"]::-moz-range-thumb {
 .painting-view-grid .view-mode-button[data-view-mode="grayscale"],
 .painting-view-grid .view-mode-button[data-view-mode="notan"],
 .painting-view-grid .view-mode-button[data-view-mode="temperatureStudy"],
+.painting-view-grid .view-mode-button[data-view-mode="colorStudy"],
 .painting-view-grid .view-mode-button[data-view-mode="paletteStudy"] {
   grid-column: span 3;
 }
@@ -532,15 +540,15 @@ input[type="range"]::-moz-range-thumb {
 }
 
 [data-stage-section="drawing"] .painting-view-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 [data-stage-section="drawing"] .painting-view-grid .view-mode-button {
   min-height: 40px;
-  padding: 8px 10px;
+  padding: 8px;
   font-size: 0.8rem;
   line-height: 1.16;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .view-mode-button.is-active {
@@ -597,6 +605,10 @@ input[type="range"]::-moz-range-thumb {
   margin-bottom: 2px;
 }
 
+#colorStudyControlsSection select {
+  margin-bottom: 2px;
+}
+
 #outlineControlsSection .helper-text {
   margin-top: 7px;
   line-height: 1.36;
@@ -612,6 +624,19 @@ input[type="range"]::-moz-range-thumb {
   padding: 7px 6px;
   font-size: 0.76rem;
   line-height: 1.15;
+  white-space: nowrap;
+}
+
+#valueContourControlsSection .preset-button-row {
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+#valueContourControlsSection .secondary-button--small {
+  min-height: 34px;
+  padding: 7px 5px;
+  font-size: 0.76rem;
+  line-height: 1.12;
   white-space: nowrap;
 }
 
@@ -773,7 +798,8 @@ button:disabled:hover {
   font-size: 0.82rem;
 }
 
-.outline-preset-button.is-active {
+.outline-preset-button.is-active,
+#valueContourControlsSection .secondary-button.is-active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fffdf8;

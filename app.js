@@ -24,6 +24,7 @@
    App Configuration / Constants
    ================================================== */
 
+const APP_VERSION_LABEL = "V2 build 28";
 const SUPPORTED_TYPES = ["image/jpeg", "image/png"];
 
 const COMPOSITION_CROP_OPTIONS = [
@@ -87,992 +88,6 @@ async function fileToImageElement(file) {
 /* ==================================================
    Core Canvas And Painting Transforms
    ================================================== */
-
-/* ---------------------------------
-   Canvas utilities
---------------------------------- */
-
-function setCanvasSize(canvas, width, height) {
-  const safeWidth = Math.max(1, Math.round(width));
-  const safeHeight = Math.max(1, Math.round(height));
-  canvas.width = safeWidth;
-  canvas.height = safeHeight;
-}
-
-function clearCanvas(ctx, canvas) {
-  ctx.save();
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.restore();
-}
-
-function computeContainSize(sourceWidth, sourceHeight, maxWidth, maxHeight) {
-  if (sourceWidth <= 0 || sourceHeight <= 0) {
-    return { width: 1, height: 1, scale: 1 };
-  }
-
-  const widthRatio = maxWidth / sourceWidth;
-  const heightRatio = maxHeight / sourceHeight;
-  const scale = Math.min(widthRatio, heightRatio, 1);
-
-  return {
-    width: Math.round(sourceWidth * scale),
-    height: Math.round(sourceHeight * scale),
-    scale
-  };
-}
-
-function drawImageContained(ctx, image, canvas) {
-  const sourceWidth = image.naturalWidth || image.width;
-  const sourceHeight = image.naturalHeight || image.height;
-
-  const fitted = computeContainSize(
-    sourceWidth,
-    sourceHeight,
-    canvas.width,
-    canvas.height
-  );
-
-  const offsetX = Math.round((canvas.width - fitted.width) / 2);
-  const offsetY = Math.round((canvas.height - fitted.height) / 2);
-
-  ctx.save();
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(image, offsetX, offsetY, fitted.width, fitted.height);
-  ctx.restore();
-}
-
-function getScalePercentage(scale) {
-  return `${Math.round(scale * 100)}%`;
-}
-
-function createOffscreenCanvas(width, height) {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  return canvas;
-}
-
-function cloneCanvas(sourceCanvas) {
-  const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d");
-
-  outputCtx.drawImage(sourceCanvas, 0, 0);
-  return outputCanvas;
-}
-
-/* ---------------------------------
-   Grayscale processing
---------------------------------- */
-
-function createGrayscaleCanvasFromCanvas(sourceCanvas) {
-  const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
-
-  outputCtx.drawImage(sourceCanvas, 0, 0);
-
-  const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-  const { data } = imageData;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const gray = Math.round((0.299 * r) + (0.587 * g) + (0.114 * b));
-
-    data[i] = gray;
-    data[i + 1] = gray;
-    data[i + 2] = gray;
-  }
-
-  outputCtx.putImageData(imageData, 0, 0);
-  return outputCanvas;
-}
-
-/* ---------------------------------
-   3-value Notan processing
---------------------------------- */
-
-function createNotanCanvasFromGrayscaleCanvas(grayscaleCanvas, options = {}) {
-  const {
-    shadowCutoff = 85,
-    lightCutoff = 170
-  } = options;
-  const outputCanvas = createOffscreenCanvas(grayscaleCanvas.width, grayscaleCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
-
-  outputCtx.drawImage(grayscaleCanvas, 0, 0);
-
-  const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-  const { data } = imageData;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const value = data[i];
-    let posterized = 255;
-
-    if (value <= shadowCutoff) {
-      posterized = 0;
-    } else if (value < lightCutoff) {
-      posterized = 127;
-    }
-
-    data[i] = posterized;
-    data[i + 1] = posterized;
-    data[i + 2] = posterized;
-  }
-
-  outputCtx.putImageData(imageData, 0, 0);
-  return outputCanvas;
-}
-
-/* ---------------------------------
-   Tonal mask processing
---------------------------------- */
-
-function createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, maskType) {
-  const outputCanvas = createOffscreenCanvas(grayscaleCanvas.width, grayscaleCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
-
-  const imageData = outputCtx.createImageData(outputCanvas.width, outputCanvas.height);
-  const { data } = imageData;
-
-  const sourceCtx = grayscaleCanvas.getContext("2d", { willReadFrequently: true });
-  const sourceData = sourceCtx.getImageData(0, 0, grayscaleCanvas.width, grayscaleCanvas.height).data;
-
-  const palette = {
-    light: { active: [255, 255, 255], inactive: [234, 229, 216] },
-    midtone: { active: [245, 225, 140], inactive: [255, 250, 232] },
-    shadow: { active: [45, 40, 36], inactive: [236, 232, 226] }
-  };
-
-  const colors = palette[maskType];
-
-  for (let i = 0; i < sourceData.length; i += 4) {
-    const value = sourceData[i];
-    let isActive = false;
-
-    if (maskType === "light") {
-      isActive = value >= 171;
-    } else if (maskType === "midtone") {
-      isActive = value >= 86 && value <= 170;
-    } else if (maskType === "shadow") {
-      isActive = value <= 85;
-    }
-
-    const fill = isActive ? colors.active : colors.inactive;
-
-    data[i] = fill[0];
-    data[i + 1] = fill[1];
-    data[i + 2] = fill[2];
-    data[i + 3] = 255;
-  }
-
-  outputCtx.putImageData(imageData, 0, 0);
-  return outputCanvas;
-}
-
-function rgbToHsl(r, g, b) {
-  const red = r / 255;
-  const green = g / 255;
-  const blue = b / 255;
-  const max = Math.max(red, green, blue);
-  const min = Math.min(red, green, blue);
-  const delta = max - min;
-  const lightness = (max + min) / 2;
-
-  let hue = 0;
-  let saturation = 0;
-
-  if (delta !== 0) {
-    saturation = delta / (1 - Math.abs((2 * lightness) - 1));
-
-    switch (max) {
-      case red:
-        hue = 60 * (((green - blue) / delta) % 6);
-        break;
-      case green:
-        hue = 60 * (((blue - red) / delta) + 2);
-        break;
-      default:
-        hue = 60 * (((red - green) / delta) + 4);
-        break;
-    }
-  }
-
-  if (hue < 0) {
-    hue += 360;
-  }
-
-  return {
-    hue,
-    saturation: saturation * 100,
-    lightness: lightness * 100
-  };
-}
-
-function isWarmHue(hue, pivot = 140) {
-  const normalizedPivot = ((pivot % 360) + 360) % 360;
-  const warmStart = (normalizedPivot + 180) % 360;
-
-  if (warmStart < normalizedPivot) {
-    return hue >= warmStart && hue < normalizedPivot;
-  }
-
-  return hue >= warmStart || hue < normalizedPivot;
-}
-
-function createTemperatureMaskCanvasFromCanvas(sourceCanvas, maskType, options = {}) {
-  const {
-    neutralThreshold = 20,
-    pivot = 140
-  } = options;
-  const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
-  const imageData = outputCtx.createImageData(outputCanvas.width, outputCanvas.height);
-  const { data } = imageData;
-
-  const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
-  const sourceData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height).data;
-
-  const activeTint = maskType === "warm"
-    ? [188, 80, 70]
-    : maskType === "cool"
-      ? [70, 110, 185]
-      : [154, 144, 132];
-  const inactiveTint = [240, 236, 229];
-  const safeNeutralThreshold = clamp(neutralThreshold, 0, 100);
-
-  for (let i = 0; i < sourceData.length; i += 4) {
-    const r = sourceData[i];
-    const g = sourceData[i + 1];
-    const b = sourceData[i + 2];
-    const gray = Math.round((0.299 * r) + (0.587 * g) + (0.114 * b));
-    const { hue, saturation } = rgbToHsl(r, g, b);
-    const chroma = ((Math.max(r, g, b) - Math.min(r, g, b)) / 255) * 100;
-    const hasTemperatureSignal = (
-      saturation >= safeNeutralThreshold &&
-      chroma >= (safeNeutralThreshold * 0.45)
-    );
-
-    let isActive = false;
-
-    if (hasTemperatureSignal) {
-      const warmHue = isWarmHue(hue, pivot);
-      if (maskType === "warm") {
-        isActive = warmHue;
-      } else if (maskType === "cool") {
-        isActive = !warmHue;
-      }
-    } else if (maskType === "neutral") {
-      isActive = true;
-    }
-
-    if (isActive) {
-      const saturationRange = Math.max(1, 100 - safeNeutralThreshold);
-      const saturationStrength = clamp(
-        (saturation - safeNeutralThreshold) / saturationRange,
-        0,
-        1
-      );
-      const tintMix = 0.38 + (0.42 * saturationStrength);
-
-      data[i] = Math.round((gray * (1 - tintMix)) + (activeTint[0] * tintMix));
-      data[i + 1] = Math.round((gray * (1 - tintMix)) + (activeTint[1] * tintMix));
-      data[i + 2] = Math.round((gray * (1 - tintMix)) + (activeTint[2] * tintMix));
-      data[i + 3] = 255;
-      continue;
-    }
-
-    const inactiveMix = 0.84;
-    data[i] = Math.round((gray * (1 - inactiveMix)) + (inactiveTint[0] * inactiveMix));
-    data[i + 1] = Math.round((gray * (1 - inactiveMix)) + (inactiveTint[1] * inactiveMix));
-    data[i + 2] = Math.round((gray * (1 - inactiveMix)) + (inactiveTint[2] * inactiveMix));
-    data[i + 3] = 255;
-  }
-
-  outputCtx.putImageData(imageData, 0, 0);
-  return outputCanvas;
-}
-
-/* ---------------------------------
-   Palette study processing
---------------------------------- */
-
-function componentToHex(value) {
-  return clamp(Math.round(value), 0, 255)
-    .toString(16)
-    .padStart(2, "0");
-}
-
-function rgbToHex(color) {
-  return `#${componentToHex(color.r)}${componentToHex(color.g)}${componentToHex(color.b)}`;
-}
-
-function getColorDistanceSquared(firstColor, secondColor) {
-  const redDelta = firstColor.r - secondColor.r;
-  const greenDelta = firstColor.g - secondColor.g;
-  const blueDelta = firstColor.b - secondColor.b;
-
-  return (redDelta * redDelta) + (greenDelta * greenDelta) + (blueDelta * blueDelta);
-}
-
-function getReadableTextColor(color) {
-  const brightness = (0.299 * color.r) + (0.587 * color.g) + (0.114 * color.b);
-  return brightness > 145 ? "#2f2a24" : "#fffdf8";
-}
-
-function getPaletteColorFamily(color) {
-  const { hue, saturation, lightness } = rgbToHsl(color.r, color.g, color.b);
-  const isGreenLeaning =
-    ((hue >= 70 && hue <= 175) && saturation > 8) ||
-    (color.g > color.r * 1.08 && color.g >= color.b * 0.82);
-  const isBlueLeaning =
-    ((hue >= 180 && hue <= 255) && saturation > 8) ||
-    (color.b > color.r * 1.08 && color.b >= color.g * 0.9);
-  const isRoseLeaning =
-    (hue >= 305 || hue <= 8) &&
-    saturation > 20 &&
-    lightness > 24 &&
-    color.r > color.g * 1.12 &&
-    color.b > color.g * 1.02;
-  const isEarthLeaning =
-    ((hue >= 14 && hue <= 70) || hue >= 350) &&
-    saturation > 8 &&
-    color.r >= color.b * 1.02;
-
-  if (isRoseLeaning) {
-    return "rose";
-  }
-
-  if (isGreenLeaning && lightness < 32) {
-    return "darkGreen";
-  }
-
-  if (isGreenLeaning) {
-    return "green";
-  }
-
-  if (isBlueLeaning) {
-    return "blue";
-  }
-
-  if (isEarthLeaning) {
-    return "earth";
-  }
-
-  if (lightness < 24) {
-    return "darkNeutral";
-  }
-
-  return "mutedNeutral";
-}
-
-function getSuggestedMixForFamily(family, color) {
-  const noteMap = {
-    darkGreen: {
-      title: "Dark green mass",
-      mix: "Viridian + Alizarin Crimson",
-      alternate: "or Ultramarine + Lemon Yellow + Burnt Sienna"
-    },
-    green: {
-      title: "Green notes",
-      mix: "Lemon Yellow + Viridian",
-      alternate: "mute with Burnt Sienna if too bright"
-    },
-    blue: {
-      title: "Cool blue note",
-      mix: "Ultramarine or Phthalo Blue",
-      alternate: "use as a diluted wash"
-    },
-    earth: {
-      title: "Warm earth note",
-      mix: "Yellow Ochre + Burnt Sienna",
-      alternate: "cool shadows with Ultramarine"
-    },
-    rose: {
-      title: "Rose / crimson accent",
-      mix: "Quinacridone Rose + Alizarin Crimson",
-      alternate: "dilute for lighter accents"
-    },
-    darkNeutral: {
-      title: "Dark neutral",
-      mix: "Ultramarine + Burnt Sienna",
-      alternate: "shift green with Viridian if needed"
-    },
-    mutedNeutral: {
-      title: "Muted neutral",
-      mix: "Yellow Ochre + Ultramarine",
-      alternate: "adjust warmth with Burnt Sienna"
-    }
-  };
-
-  return {
-    ...noteMap[family],
-    color
-  };
-}
-
-function getDominantMixNotes(paletteColors, maxNotes = 3) {
-  const safePalette = paletteColors.length > 0
-    ? paletteColors
-    : [{ r: 47, g: 42, b: 36, hex: "#2f2a24", dominance: 1 }];
-  const sortedColors = [...safePalette].sort(
-    (firstColor, secondColor) => (secondColor.dominance || 0) - (firstColor.dominance || 0)
-  );
-  const seenFamilies = new Set();
-  const notes = [];
-
-  sortedColors.forEach((color) => {
-    if (notes.length >= maxNotes) {
-      return;
-    }
-
-    const family = getPaletteColorFamily(color);
-    if (seenFamilies.has(family)) {
-      return;
-    }
-
-    seenFamilies.add(family);
-    notes.push(getSuggestedMixForFamily(family, color));
-  });
-
-  if (notes.length < maxNotes) {
-    sortedColors.forEach((color) => {
-      if (notes.length >= maxNotes) {
-        return;
-      }
-
-      const family = getPaletteColorFamily(color);
-      notes.push(getSuggestedMixForFamily(family, color));
-    });
-  }
-
-  return notes.slice(0, maxNotes);
-}
-
-function analyzeDominantMixNotesFromCanvas(sourceCanvas, maxNotes = 3, options = {}) {
-  const { sampleBudget = 24000 } = options;
-  const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
-  const sourceData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height).data;
-  const sampleStep = Math.max(
-    1,
-    Math.floor(Math.sqrt((sourceCanvas.width * sourceCanvas.height) / sampleBudget))
-  );
-  const familyStats = new Map();
-  let sampledPixels = 0;
-
-  for (let y = 0; y < sourceCanvas.height; y += sampleStep) {
-    for (let x = 0; x < sourceCanvas.width; x += sampleStep) {
-      const index = ((y * sourceCanvas.width) + x) * 4;
-      const alpha = sourceData[index + 3];
-      if (alpha < 128) {
-        continue;
-      }
-
-      const color = {
-        r: sourceData[index],
-        g: sourceData[index + 1],
-        b: sourceData[index + 2]
-      };
-      const family = getPaletteColorFamily(color);
-      const stat = familyStats.get(family) || {
-        family,
-        count: 0,
-        r: 0,
-        g: 0,
-        b: 0
-      };
-
-      stat.count += 1;
-      stat.r += color.r;
-      stat.g += color.g;
-      stat.b += color.b;
-      familyStats.set(family, stat);
-      sampledPixels += 1;
-    }
-  }
-
-  if (sampledPixels === 0) {
-    return getDominantMixNotes([], maxNotes);
-  }
-
-  const rankedFamilies = Array.from(familyStats.values())
-    .map((stat) => {
-      const color = {
-        r: Math.round(stat.r / stat.count),
-        g: Math.round(stat.g / stat.count),
-        b: Math.round(stat.b / stat.count),
-        dominance: stat.count / sampledPixels
-      };
-
-      color.hex = rgbToHex(color);
-
-      return {
-        ...stat,
-        color,
-        dominance: stat.count / sampledPixels
-      };
-    })
-    .sort((firstFamily, secondFamily) => secondFamily.dominance - firstFamily.dominance);
-
-  const notes = [];
-  const preferredFamilies = rankedFamilies.filter((stat) => stat.family !== "mutedNeutral");
-  const fallbackFamilies = rankedFamilies.filter((stat) => stat.family === "mutedNeutral");
-
-  [...preferredFamilies, ...fallbackFamilies].forEach((stat) => {
-    if (notes.length >= maxNotes) {
-      return;
-    }
-
-    notes.push(getSuggestedMixForFamily(stat.family, stat.color));
-  });
-
-  return notes;
-}
-
-function extractDominantPaletteFromCanvas(sourceCanvas, options = {}) {
-  const {
-    colorCount = 5,
-    bucketSize = 24,
-    sampleBudget = 16000,
-    minimumDistance = 34
-  } = options;
-  const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
-  const sourceData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height).data;
-  const sampleStep = Math.max(
-    1,
-    Math.floor(Math.sqrt((sourceCanvas.width * sourceCanvas.height) / sampleBudget))
-  );
-  const buckets = new Map();
-  let sampledPixels = 0;
-
-  for (let y = 0; y < sourceCanvas.height; y += sampleStep) {
-    for (let x = 0; x < sourceCanvas.width; x += sampleStep) {
-      const index = ((y * sourceCanvas.width) + x) * 4;
-      const alpha = sourceData[index + 3];
-      if (alpha < 128) {
-        continue;
-      }
-
-      const r = sourceData[index];
-      const g = sourceData[index + 1];
-      const b = sourceData[index + 2];
-      const key = [
-        Math.floor(r / bucketSize),
-        Math.floor(g / bucketSize),
-        Math.floor(b / bucketSize)
-      ].join("-");
-
-      const bucket = buckets.get(key) || {
-        count: 0,
-        r: 0,
-        g: 0,
-        b: 0
-      };
-
-      bucket.count += 1;
-      bucket.r += r;
-      bucket.g += g;
-      bucket.b += b;
-      buckets.set(key, bucket);
-      sampledPixels += 1;
-    }
-  }
-
-  if (sampledPixels === 0) {
-    return [];
-  }
-
-  const rankedColors = Array.from(buckets.values())
-    .map((bucket) => {
-      const color = {
-        r: Math.round(bucket.r / bucket.count),
-        g: Math.round(bucket.g / bucket.count),
-        b: Math.round(bucket.b / bucket.count)
-      };
-      const { saturation, lightness } = rgbToHsl(color.r, color.g, color.b);
-      const dominance = bucket.count / sampledPixels;
-
-      return {
-        ...color,
-        hex: rgbToHex(color),
-        dominance,
-        saturation,
-        lightness,
-        score: bucket.count * (0.72 + (saturation / 100) * 0.28)
-      };
-    })
-    .sort((firstColor, secondColor) => secondColor.score - firstColor.score);
-
-  const selectedColors = [];
-  const minimumDistanceSquared = minimumDistance * minimumDistance;
-
-  rankedColors.forEach((color) => {
-    if (selectedColors.length >= colorCount) {
-      return;
-    }
-
-    const isDistinct = selectedColors.every(
-      (selectedColor) => getColorDistanceSquared(color, selectedColor) >= minimumDistanceSquared
-    );
-
-    if (isDistinct) {
-      selectedColors.push(color);
-    }
-  });
-
-  if (selectedColors.length < colorCount) {
-    rankedColors.forEach((color) => {
-      if (selectedColors.length >= colorCount) {
-        return;
-      }
-
-      if (!selectedColors.includes(color)) {
-        selectedColors.push(color);
-      }
-    });
-  }
-
-  return selectedColors.sort((firstColor, secondColor) => firstColor.lightness - secondColor.lightness);
-}
-
-function createPaletteStudyCanvas(sourceCanvas, paletteColors, mixNotes = null) {
-  const safePalette = paletteColors.length > 0
-    ? paletteColors
-    : [{ r: 47, g: 42, b: 36, hex: "#2f2a24" }];
-  const dominantSwatchHeight = Math.round(clamp(sourceCanvas.height * 0.08, 48, 78));
-  const noteHeaderHeight = 56;
-  const noteCardHeight = Math.round(clamp(sourceCanvas.height * 0.16, 104, 142));
-  const bottomPadding = 16;
-  const safeMixNotes = mixNotes && mixNotes.length > 0
-    ? mixNotes
-    : getDominantMixNotes(safePalette, 3);
-  const outputCanvas = createOffscreenCanvas(
-    sourceCanvas.width,
-    sourceCanvas.height + dominantSwatchHeight + noteHeaderHeight + noteCardHeight + bottomPadding
-  );
-  const outputCtx = outputCanvas.getContext("2d");
-
-  outputCtx.fillStyle = "#ffffff";
-  outputCtx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
-  outputCtx.drawImage(sourceCanvas, 0, 0);
-
-  const swatchY = sourceCanvas.height;
-  const swatchWidth = sourceCanvas.width / safePalette.length;
-
-  safePalette.forEach((color, index) => {
-    const x = Math.round(index * swatchWidth);
-    const nextX = Math.round((index + 1) * swatchWidth);
-
-    outputCtx.fillStyle = color.hex;
-    outputCtx.fillRect(x, swatchY, nextX - x, dominantSwatchHeight);
-  });
-
-  const pigmentY = swatchY + dominantSwatchHeight;
-  outputCtx.fillStyle = "#f4f1ea";
-  outputCtx.fillRect(
-    0,
-    pigmentY,
-    outputCanvas.width,
-    noteHeaderHeight + noteCardHeight + bottomPadding
-  );
-
-  outputCtx.fillStyle = "#2f2a24";
-  outputCtx.font = "700 18px 'Avenir Next', Avenir, Aptos, 'Helvetica Neue', Helvetica, Arial, sans-serif";
-  outputCtx.textAlign = "left";
-  outputCtx.textBaseline = "top";
-  outputCtx.fillText("Suggested watercolor mixes", 18, pigmentY + 12);
-
-  outputCtx.font = "500 13px 'Avenir Next', Avenir, Aptos, 'Helvetica Neue', Helvetica, Arial, sans-serif";
-  outputCtx.fillStyle = "#6f665c";
-  outputCtx.fillText("Three starting notes from the dominant color families. Adjust by eye.", 18, pigmentY + 35);
-
-  const cardGap = 14;
-  const cardY = pigmentY + noteHeaderHeight;
-  const cardMargin = 18;
-  const cardWidth = Math.floor((sourceCanvas.width - (cardMargin * 2) - (cardGap * 2)) / 3);
-
-  safeMixNotes.forEach((note, index) => {
-    const x = cardMargin + (index * (cardWidth + cardGap));
-    const colorStripHeight = Math.max(18, Math.round(noteCardHeight * 0.22));
-    const padding = 12;
-
-    outputCtx.fillStyle = "#fffdf8";
-    outputCtx.fillRect(x, cardY, cardWidth, noteCardHeight);
-
-    outputCtx.fillStyle = note.color.hex;
-    outputCtx.fillRect(x, cardY, cardWidth, colorStripHeight);
-
-    outputCtx.strokeStyle = "rgba(217, 210, 196, 0.95)";
-    outputCtx.lineWidth = 1;
-    outputCtx.strokeRect(x, cardY, cardWidth, noteCardHeight);
-
-    outputCtx.fillStyle = "#2f2a24";
-    outputCtx.font = `700 ${Math.max(13, Math.min(16, Math.round(cardWidth / 16)))}px 'Avenir Next', Avenir, Aptos, 'Helvetica Neue', Helvetica, Arial, sans-serif`;
-    outputCtx.textAlign = "left";
-    outputCtx.textBaseline = "top";
-    outputCtx.fillText(note.title, x + padding, cardY + colorStripHeight + 10, cardWidth - (padding * 2));
-
-    outputCtx.font = `600 ${Math.max(12, Math.min(14, Math.round(cardWidth / 18)))}px 'Avenir Next', Avenir, Aptos, 'Helvetica Neue', Helvetica, Arial, sans-serif`;
-    outputCtx.fillText(note.mix, x + padding, cardY + colorStripHeight + 38, cardWidth - (padding * 2));
-
-    outputCtx.fillStyle = "#6f665c";
-    outputCtx.font = `500 ${Math.max(11, Math.min(13, Math.round(cardWidth / 20)))}px 'Avenir Next', Avenir, Aptos, 'Helvetica Neue', Helvetica, Arial, sans-serif`;
-    outputCtx.fillText(note.alternate, x + padding, cardY + colorStripHeight + 62, cardWidth - (padding * 2));
-  });
-
-  return outputCanvas;
-}
-
-/* ==================================================
-   Drawing / Observation Transforms
-   ================================================== */
-
-/* ---------------------------------
-   Outline sketch processing
---------------------------------- */
-
-function getOutlinePresetSettings(detailLevel, sourceKey = "gray") {
-  const presetsBySource = {
-    original: {
-      low: { label: "Simple", sensitivity: 20, smoothing: 3, sourcePrep: {} },
-      medium: { label: "Balanced", sensitivity: 44, smoothing: 2, sourcePrep: {} },
-      high: { label: "Detailed", sensitivity: 70, smoothing: 1, sourcePrep: {} }
-    },
-    gray: {
-      low: { label: "Simple", sensitivity: 24, smoothing: 3, sourcePrep: { graySimplification: 12 } },
-      medium: { label: "Balanced", sensitivity: 52, smoothing: 2, sourcePrep: { graySimplification: 0 } },
-      high: { label: "Detailed", sensitivity: 82, smoothing: 1, sourcePrep: { graySimplification: 0 } }
-    },
-    squint: {
-      low: { label: "Simple", sensitivity: 24, smoothing: 3, sourcePrep: { squintSoftness: 70 } },
-      medium: { label: "Balanced", sensitivity: 48, smoothing: 2, sourcePrep: { squintSoftness: 50 } },
-      high: { label: "Detailed", sensitivity: 74, smoothing: 1, sourcePrep: { squintSoftness: 32 } }
-    },
-    notan: {
-      low: {
-        label: "Simple",
-        sensitivity: 18,
-        smoothing: 3,
-        sourcePrep: { notanShadowCutoff: 105, notanLightCutoff: 150 }
-      },
-      medium: {
-        label: "Balanced",
-        sensitivity: 36,
-        smoothing: 2,
-        sourcePrep: { notanShadowCutoff: 90, notanLightCutoff: 165 }
-      },
-      high: {
-        label: "Detailed",
-        sensitivity: 58,
-        smoothing: 1,
-        sourcePrep: { notanShadowCutoff: 75, notanLightCutoff: 180 }
-      }
-    }
-  };
-
-  const presets = presetsBySource[sourceKey] || presetsBySource.gray;
-  return presets[detailLevel] || presets.medium;
-}
-
-function getMatchingOutlinePresetKey(outlineOptions) {
-  return outlineOptions.detail || "medium";
-}
-
-function getOutlineDisplayLabel(outlineOptions) {
-  return getOutlinePresetSettings(getMatchingOutlinePresetKey(outlineOptions)).label;
-}
-
-function getOutlineRenderSettings(outlineOptions) {
-  const sensitivity = clamp(outlineOptions.sensitivity, 10, 120);
-  const smoothing = clamp(outlineOptions.smoothing, 0, 3);
-
-  return {
-    sensitivity,
-    smoothing,
-    threshold: clamp(200 - sensitivity, 58, 184),
-    blurPasses: smoothing
-  };
-}
-
-function blurGrayscaleCanvasOnce(sourceCanvas) {
-  const width = sourceCanvas.width;
-  const height = sourceCanvas.height;
-
-  const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
-  const sourceImageData = sourceCtx.getImageData(0, 0, width, height);
-  const src = sourceImageData.data;
-
-  const outputCanvas = createOffscreenCanvas(width, height);
-  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
-  const outputImageData = outputCtx.createImageData(width, height);
-  const out = outputImageData.data;
-
-  const getGrayAt = (x, y) => {
-    const clampedX = Math.max(0, Math.min(width - 1, x));
-    const clampedY = Math.max(0, Math.min(height - 1, y));
-    const index = (clampedY * width + clampedX) * 4;
-    return src[index];
-  };
-
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      let sum = 0;
-
-      for (let ky = -1; ky <= 1; ky += 1) {
-        for (let kx = -1; kx <= 1; kx += 1) {
-          sum += getGrayAt(x + kx, y + ky);
-        }
-      }
-
-      const blurred = Math.round(sum / 9);
-      const index = (y * width + x) * 4;
-
-      out[index] = blurred;
-      out[index + 1] = blurred;
-      out[index + 2] = blurred;
-      out[index + 3] = 255;
-    }
-  }
-
-  outputCtx.putImageData(outputImageData, 0, 0);
-  return outputCanvas;
-}
-
-function createBlurredGrayscaleCanvas(sourceCanvas, blurPasses) {
-  let currentCanvas = sourceCanvas;
-
-  for (let i = 0; i < blurPasses; i += 1) {
-    currentCanvas = blurGrayscaleCanvasOnce(currentCanvas);
-  }
-
-  return currentCanvas;
-}
-
-function createOutlineSketchCanvasFromGrayscaleCanvas(grayscaleCanvas, outlineOptions) {
-  const settings = getOutlineRenderSettings(outlineOptions);
-  const blurredCanvas = createBlurredGrayscaleCanvas(grayscaleCanvas, settings.blurPasses);
-
-  const width = blurredCanvas.width;
-  const height = blurredCanvas.height;
-
-  const sourceCtx = blurredCanvas.getContext("2d", { willReadFrequently: true });
-  const sourceImageData = sourceCtx.getImageData(0, 0, width, height);
-  const src = sourceImageData.data;
-
-  const outputCanvas = createOffscreenCanvas(width, height);
-  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
-  const outputImageData = outputCtx.createImageData(width, height);
-  const out = outputImageData.data;
-
-  const getGrayAt = (x, y) => {
-    const clampedX = Math.max(0, Math.min(width - 1, x));
-    const clampedY = Math.max(0, Math.min(height - 1, y));
-    const index = (clampedY * width + clampedX) * 4;
-    return src[index];
-  };
-
-  const sobelX = [
-    [-1, 0, 1],
-    [-2, 0, 2],
-    [-1, 0, 1]
-  ];
-
-  const sobelY = [
-    [-1, -2, -1],
-    [0, 0, 0],
-    [1, 2, 1]
-  ];
-
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      let gx = 0;
-      let gy = 0;
-
-      for (let ky = -1; ky <= 1; ky += 1) {
-        for (let kx = -1; kx <= 1; kx += 1) {
-          const gray = getGrayAt(x + kx, y + ky);
-          gx += gray * sobelX[ky + 1][kx + 1];
-          gy += gray * sobelY[ky + 1][kx + 1];
-        }
-      }
-
-      const magnitude = Math.sqrt((gx * gx) + (gy * gy));
-      const isEdge = magnitude >= settings.threshold;
-      const outputValue = isEdge ? 0 : 255;
-      const index = (y * width + x) * 4;
-
-      out[index] = outputValue;
-      out[index + 1] = outputValue;
-      out[index + 2] = outputValue;
-      out[index + 3] = 255;
-    }
-  }
-
-  outputCtx.putImageData(outputImageData, 0, 0);
-  return outputCanvas;
-}
-
-function createMirroredCanvasFromCanvas(sourceCanvas) {
-  const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d");
-
-  outputCtx.save();
-  outputCtx.translate(sourceCanvas.width, 0);
-  outputCtx.scale(-1, 1);
-  outputCtx.drawImage(sourceCanvas, 0, 0);
-  outputCtx.restore();
-
-  return outputCanvas;
-}
-
-function createSquintCanvasFromGrayscaleCanvas(sourceCanvas, options = {}) {
-  const { softness = 35 } = options;
-  const clampedSoftness = clamp(softness, 0, 100);
-  const totalPasses = (clampedSoftness / 100) * 5;
-  const wholePasses = Math.floor(totalPasses);
-  const blendAmount = totalPasses - wholePasses;
-  const normalized = clampedSoftness / 100;
-  const valueLevels = Math.round(12 - (normalized * 8));
-
-  let baseCanvas = sourceCanvas;
-  if (wholePasses > 0) {
-    baseCanvas = createBlurredGrayscaleCanvas(sourceCanvas, wholePasses);
-  }
-
-  const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d");
-  outputCtx.drawImage(baseCanvas, 0, 0);
-
-  if (blendAmount > 0.001) {
-    const nextCanvas = createBlurredGrayscaleCanvas(baseCanvas, 1);
-    outputCtx.save();
-    outputCtx.globalAlpha = blendAmount;
-    outputCtx.drawImage(nextCanvas, 0, 0);
-    outputCtx.restore();
-  }
-
-  const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-  const { data } = imageData;
-  const safeLevels = clamp(valueLevels, 4, 12);
-  const maxStepIndex = safeLevels - 1;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const value = data[i] / 255;
-    const steppedValue = Math.round(value * maxStepIndex) / maxStepIndex;
-    const gray = Math.round(steppedValue * 255);
-
-    data[i] = gray;
-    data[i + 1] = gray;
-    data[i + 2] = gray;
-    data[i + 3] = 255;
-  }
-
-  outputCtx.putImageData(imageData, 0, 0);
-
-  return outputCanvas;
-}
 
 /* ==================================================
    View Composition And Export Helpers
@@ -1445,6 +460,7 @@ class PaintersReferenceApp {
       referenceSummary: document.getElementById("referenceSummary"),
       referenceFileName: document.getElementById("referenceFileName"),
       headerFileChip: document.getElementById("headerFileChip"),
+      appVersionChip: document.getElementById("appVersionChip"),
       themeToggleButton: document.getElementById("themeToggleButton"),
       changeImageButton: document.getElementById("changeImageButton"),
       mainCanvas: document.getElementById("mainCanvas"),
@@ -1460,6 +476,9 @@ class PaintersReferenceApp {
       outlineSourceInput: document.getElementById("outlineSourceInput"),
       outlineSourceHelpText: document.getElementById("outlineSourceHelpText"),
       outlinePresetButtons: Array.from(document.querySelectorAll("[data-outline-preset]")),
+      valueContourControlsSection: document.getElementById("valueContourControlsSection"),
+      valueContourDetailLabel: document.getElementById("valueContourDetailLabel"),
+      valueContourDetailButtons: Array.from(document.querySelectorAll("[data-value-contour-detail]")),
       squintControlsSection: document.getElementById("squintControlsSection"),
       squintBlurInput: document.getElementById("squintBlurInput"),
       squintBlurValue: document.getElementById("squintBlurValue"),
@@ -1473,6 +492,9 @@ class PaintersReferenceApp {
       temperatureNeutralThresholdValue: document.getElementById("temperatureNeutralThresholdValue"),
       temperaturePivotInput: document.getElementById("temperaturePivotInput"),
       temperaturePivotValue: document.getElementById("temperaturePivotValue"),
+      colorStudyControlsSection: document.getElementById("colorStudyControlsSection"),
+      colorStudyPresetInput: document.getElementById("colorStudyPresetInput"),
+      colorStudyPresetLabel: document.getElementById("colorStudyPresetLabel"),
       resetNotanButton: document.getElementById("resetNotanButton"),
       focalRadiusInput: document.getElementById("focalRadiusInput"),
       focalRadiusValue: document.getElementById("focalRadiusValue"),
@@ -1534,6 +556,9 @@ class PaintersReferenceApp {
       squint: {
         softness: 35
       },
+      valueContour: {
+        detail: "medium"
+      },
       stageSelections: {
         baseline: "original",
         composition: "focalStudy",
@@ -1548,6 +573,9 @@ class PaintersReferenceApp {
       temperature: {
         neutralThreshold: 20,
         pivot: 140
+      },
+      colorStudy: {
+        preset: "complementary"
       },
       focalStudy: {
         point: null,
@@ -1571,6 +599,8 @@ class PaintersReferenceApp {
         warmMaskCanvas: null,
         coolMaskCanvas: null,
         neutralMaskCanvas: null,
+        colorStudyCanvas: null,
+        valueContourCanvas: null,
         outlineSketchCanvas: null,
         squintCanvas: null,
         mirrorCanvas: null,
@@ -1595,9 +625,17 @@ class PaintersReferenceApp {
     this.focalStudyLayout = null;
 
     this.initializeTheme();
+    this.updateAppVersion();
     this.bindEvents();
     this.initializeCanvas();
     this.syncControls();
+  }
+
+  updateAppVersion() {
+    if (this.dom.appVersionChip) {
+      this.dom.appVersionChip.textContent = APP_VERSION_LABEL;
+      this.dom.appVersionChip.setAttribute("title", `Loaded ${APP_VERSION_LABEL}`);
+    }
   }
 
   initializeTheme() {
@@ -1644,6 +682,7 @@ class PaintersReferenceApp {
       focalStudy: "composition",
       squint: "painting",
       outlineSketch: "drawing",
+      valueContours: "drawing",
       mirror: "drawing",
       grayscale: "painting",
       notan: "painting",
@@ -1651,6 +690,7 @@ class PaintersReferenceApp {
       midtoneMask: "painting",
       shadowMask: "painting",
       temperatureStudy: "painting",
+      colorStudy: "painting",
       paletteStudy: "painting"
     };
 
@@ -1784,6 +824,30 @@ class PaintersReferenceApp {
       this.refreshTemperatureCanvases();
       this.updateTemperatureControls();
       this.renderScene();
+    });
+
+    if (this.dom.colorStudyPresetInput) {
+      this.dom.colorStudyPresetInput.addEventListener("change", () => {
+        this.state.colorStudy.preset = this.dom.colorStudyPresetInput.value || "complementary";
+        this.refreshColorStudyCanvas();
+        this.updateColorStudyControls();
+        this.renderScene();
+      });
+    }
+
+    this.dom.valueContourDetailButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const detail = button.dataset.valueContourDetail;
+        if (!detail) {
+          return;
+        }
+
+        this.state.valueContour.detail = detail;
+        this.refreshValueContourCanvas();
+        this.updateValueContourControls();
+        this.updateStagePanels();
+        this.renderScene();
+      });
     });
 
     this.dom.focalRadiusInput.addEventListener("input", () => {
@@ -1926,9 +990,11 @@ class PaintersReferenceApp {
     this.updateStagePanels();
     this.updateOutlineDetailLabel();
     this.updateOutlineControls();
+    this.updateValueContourControls();
     this.updateSquintControls();
     this.updateNotanControls();
     this.updateTemperatureControls();
+    this.updateColorStudyControls();
     this.updateFocalStudyControls();
     this.updateStudySheetPreviewControls();
     this.updateReferenceSection();
@@ -1962,8 +1028,10 @@ class PaintersReferenceApp {
       midtoneMask: "Midtone Mask",
       shadowMask: "Shadow Mask",
       temperatureStudy: "Temperature Study",
+      colorStudy: "Color Study",
       paletteStudy: "Palette Notes",
       outlineSketch: "Rough Outline Sketch",
+      valueContours: "Value Contours",
       squint: "Squint",
       mirror: "Mirror Check"
     };
@@ -1974,6 +1042,10 @@ class PaintersReferenceApp {
   getDrawingViewLabel(viewMode = this.state.stageSelections.drawing) {
     if (viewMode === "outlineSketch") {
       return `Outline (${getOutlineDisplayLabel(this.state.outline)})`;
+    }
+
+    if (viewMode === "valueContours") {
+      return `Value Contours (${getValueContourDisplayLabel(this.state.valueContour.detail)})`;
     }
 
     if (viewMode === "mirror") {
@@ -2020,6 +1092,7 @@ class PaintersReferenceApp {
       original: "Original",
       focalStudy: "Focal Study",
       outlineSketch: "Rough Outline",
+      valueContours: "Value Contours",
       squint: "Squint",
       mirror: "Mirror Check",
       grayscale: "Grayscale",
@@ -2028,6 +1101,7 @@ class PaintersReferenceApp {
       midtoneMask: "Midtone Mask",
       shadowMask: "Shadow Mask",
       temperatureStudy: "Temperature Study",
+      colorStudy: "Color Study",
       paletteStudy: "Palette Notes"
     };
 
@@ -2049,6 +1123,10 @@ class PaintersReferenceApp {
       this.state.activeStage === "drawing" && this.state.viewMode === "outlineSketch";
     this.dom.outlineControlsSection.classList.toggle("is-hidden", !isOutlineActive);
 
+    const isValueContourActive =
+      this.state.activeStage === "drawing" && this.state.viewMode === "valueContours";
+    this.dom.valueContourControlsSection.classList.toggle("is-hidden", !isValueContourActive);
+
     const isSquintActive =
       this.state.activeStage === "painting" && this.state.viewMode === "squint";
     this.dom.squintControlsSection.classList.toggle("is-hidden", !isSquintActive);
@@ -2057,6 +1135,10 @@ class PaintersReferenceApp {
       this.state.activeStage === "painting" &&
       this.state.viewMode === "temperatureStudy";
     this.dom.temperatureControlsSection.classList.toggle("is-hidden", !isTemperatureActive);
+
+    const isColorStudyActive =
+      this.state.activeStage === "painting" && this.state.viewMode === "colorStudy";
+    this.dom.colorStudyControlsSection.classList.toggle("is-hidden", !isColorStudyActive);
 
     this.updateStudySheetPreviewControls();
   }
@@ -2111,6 +1193,17 @@ class PaintersReferenceApp {
     this.updateRangeFills();
   }
 
+  updateValueContourControls() {
+    const detail = this.state.valueContour.detail || "medium";
+    this.dom.valueContourDetailLabel.textContent = getValueContourDisplayLabel(detail);
+
+    this.dom.valueContourDetailButtons.forEach((button) => {
+      const isActive = button.dataset.valueContourDetail === detail;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+  }
+
   updateNotanControls() {
     this.dom.notanShadowCutoffInput.value = this.state.notan.shadowCutoff;
     this.dom.notanLightCutoffInput.value = this.state.notan.lightCutoff;
@@ -2132,6 +1225,17 @@ class PaintersReferenceApp {
     this.dom.temperaturePivotInput.value = this.state.temperature.pivot;
     this.dom.temperaturePivotValue.textContent = `${this.state.temperature.pivot}\u00b0`;
     this.updateRangeFills();
+  }
+
+  updateColorStudyControls() {
+    if (this.dom.colorStudyPresetInput) {
+      this.dom.colorStudyPresetInput.value = this.state.colorStudy.preset;
+    }
+
+    if (this.dom.colorStudyPresetLabel) {
+      this.dom.colorStudyPresetLabel.textContent =
+        getColorStudyPresetLabel(this.state.colorStudy.preset);
+    }
   }
 
   updateFocalStudyControls() {
@@ -2247,6 +1351,17 @@ class PaintersReferenceApp {
     );
   }
 
+  refreshColorStudyCanvas() {
+    if (!this.state.processed.originalCanvas) {
+      return;
+    }
+
+    this.state.processed.colorStudyCanvas = createColorStudyCanvasFromCanvas(
+      this.state.processed.originalCanvas,
+      this.state.colorStudy.preset
+    );
+  }
+
   refreshOutlineCanvas() {
     const outlineSourceCanvas = this.getOutlineSourceCanvas();
     if (!outlineSourceCanvas) {
@@ -2258,6 +1373,17 @@ class PaintersReferenceApp {
       this.state.outline
     );
     this.refreshMirrorCanvas();
+  }
+
+  refreshValueContourCanvas() {
+    if (!this.state.processed.grayscaleCanvas) {
+      return;
+    }
+
+    this.state.processed.valueContourCanvas = createValueContourCanvasFromGrayscaleCanvas(
+      this.state.processed.grayscaleCanvas,
+      this.state.valueContour
+    );
   }
 
   refreshSquintCanvas() {
@@ -2283,6 +1409,7 @@ class PaintersReferenceApp {
 
   refreshDrawingDerivedCanvases() {
     this.refreshMirrorCanvas();
+    this.refreshValueContourCanvas();
     this.refreshSquintCanvas();
   }
 
@@ -2354,6 +1481,14 @@ class PaintersReferenceApp {
       "neutral",
       this.state.temperature
     );
+    const colorStudyCanvas = createColorStudyCanvasFromCanvas(
+      originalCanvas,
+      this.state.colorStudy.preset
+    );
+    const valueContourCanvas = createValueContourCanvasFromGrayscaleCanvas(
+      grayscaleCanvas,
+      this.state.valueContour
+    );
 
     const squintCanvas = createSquintCanvasFromGrayscaleCanvas(grayscaleCanvas, this.state.squint);
     const outlineSourceCanvas = this.getOutlineSourceCanvasFromCanvases({
@@ -2379,6 +1514,8 @@ class PaintersReferenceApp {
     this.state.processed.warmMaskCanvas = warmMaskCanvas;
     this.state.processed.coolMaskCanvas = coolMaskCanvas;
     this.state.processed.neutralMaskCanvas = neutralMaskCanvas;
+    this.state.processed.colorStudyCanvas = colorStudyCanvas;
+    this.state.processed.valueContourCanvas = valueContourCanvas;
     this.state.processed.outlineSketchCanvas = outlineSketchCanvas;
     this.state.processed.squintCanvas = squintCanvas;
     this.state.processed.mirrorCanvas = mirrorCanvas;
@@ -2536,6 +1673,8 @@ class PaintersReferenceApp {
       lightMask: this.state.processed.lightMaskCanvas,
       midtoneMask: this.state.processed.midtoneMaskCanvas,
       shadowMask: this.state.processed.shadowMaskCanvas,
+      colorStudy: this.state.processed.colorStudyCanvas,
+      valueContours: this.state.processed.valueContourCanvas,
       outlineSketch: this.getActiveOutlineCanvas(),
       squint: this.state.processed.squintCanvas,
       mirror: this.state.processed.mirrorCanvas,
@@ -2800,6 +1939,66 @@ class PaintersReferenceApp {
     this.updateOutlineDetailLabel();
   }
 
+  renderColorStudyScene() {
+    const originalCanvas = this.state.processed.originalCanvas;
+    const colorStudyCanvas = this.state.processed.colorStudyCanvas;
+    if (!originalCanvas || !colorStudyCanvas) {
+      return;
+    }
+
+    const labelHeight = 46;
+    const margin = 24;
+    const gutter = 24;
+    const panelImageSize = computeContainSize(
+      originalCanvas.width,
+      originalCanvas.height,
+      620,
+      620
+    );
+    const panelWidth = panelImageSize.width;
+    const panelHeight = panelImageSize.height + labelHeight;
+    const canvasWidth = (margin * 2) + (panelWidth * 2) + gutter;
+    const canvasHeight = (margin * 2) + panelHeight;
+    const studyLabel = getColorStudyPresetLabel(this.state.colorStudy.preset);
+
+    setCanvasSize(this.dom.mainCanvas, canvasWidth, canvasHeight);
+    clearCanvas(this.ctx, this.dom.mainCanvas);
+
+    drawPanel(
+      this.ctx,
+      originalCanvas,
+      margin,
+      margin,
+      panelWidth,
+      panelHeight,
+      this.getCompositionChoiceLabel(),
+      {
+        labelHeight,
+        sublabel: "Current reference"
+      }
+    );
+
+    drawPanel(
+      this.ctx,
+      colorStudyCanvas,
+      margin + panelWidth + gutter,
+      margin,
+      panelWidth,
+      panelHeight,
+      studyLabel,
+      {
+        labelHeight,
+        sublabel: "Approximate palette study"
+      }
+    );
+
+    this.focalStudyLayout = null;
+    this.updateStatus(`${studyLabel} ready`);
+    this.updateInfo();
+    this.updateViewModeLabel();
+    this.updateOutlineDetailLabel();
+  }
+
   renderPaletteStudyScene() {
     const originalCanvas = this.state.processed.originalCanvas;
     if (!originalCanvas) {
@@ -2837,6 +2036,11 @@ class PaintersReferenceApp {
 
     if (this.state.viewMode === "temperatureStudy") {
       this.renderTemperatureStudyScene();
+      return;
+    }
+
+    if (this.state.viewMode === "colorStudy") {
+      this.renderColorStudyScene();
       return;
     }
 

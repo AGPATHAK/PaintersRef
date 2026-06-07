@@ -139,9 +139,11 @@ Purpose:
   - `index.html`
   - `styles.css`
   - `app.js`
+  - `modules/` on the V2 refactor branch
   - `manifest.webmanifest`
   - `service-worker.js`
-- Single-file runtime architecture centered in `app.js`
+- Stable prototype: single-file runtime architecture centered in `app.js`
+- V2 refactor branch: deterministic processors extracted into focused classic-script modules, with app orchestration still centered in `app.js`
 - Deterministic client-side image processing
 - Manual browser smoke testing remains the main regression check
 
@@ -149,14 +151,14 @@ Purpose:
 
 - The app is usable, but output should continue to be judged against real painting references.
 - Outline recipes may need future calibration, but the visible control surface should stay simple unless real use proves otherwise.
-- `app.js` remains large and monolithic.
-- Code refactor is intentionally deferred until workflow stabilizes after more real use.
+- `app.js` remains the runtime/controller layer and still contains composition, render, and export orchestration.
+- The V2 processor extraction is a good-enough maintainability checkpoint; further refactor should be driven by concrete feature pressure.
 - Future changes should stay incremental and stability-first.
 
 ## Intentionally Deferred
 
 - Broad refactor of `app.js`
-- Module extraction
+- Composition/runtime/export extraction beyond the current V2 module boundary
 - Export/sheet structure changes
 - Larger UX redesign
 - New user-facing controls unless real usage proves the need

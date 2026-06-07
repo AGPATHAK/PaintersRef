@@ -121,9 +121,22 @@ Then open [http://localhost:8080](http://localhost:8080).
 
 - `index.html` - app structure and controls
 - `styles.css` - layout and visual styling
-- `app.js` - image processing, workflow controls, view switching, and export logic
+- `app.js` - app state, workflow controls, view switching, render routing, and export orchestration
+- `modules/` - deterministic canvas/image processors loaded as classic browser scripts before `app.js`
 - `manifest.webmanifest` - PWA manifest
 - `service-worker.js` - offline caching
+
+## V2 Refactor Branch Notes
+
+The `codex/v2` branch has a behavior-preserving module split for deterministic processors:
+
+- canvas utilities
+- grayscale / Notan processors
+- tonal and temperature masks
+- palette notes
+- outline, mirror, and Squint helpers
+
+The visible build chip in the header shows the loaded V2 build. When app-shell files change, bump the build label, script query strings, and service-worker cache together so stale loads are easy to spot.
 
 ## Planning Documents
 
