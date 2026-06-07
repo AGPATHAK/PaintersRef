@@ -1,6 +1,29 @@
 # V2 Runtime Dependency Map
 
-This map captures the current `app.js` runtime before V2 code extraction begins. It is a guardrail for behavior-preserving refactors: if a future extraction changes these flows, it should be treated as a regression unless the change is intentional and separately planned.
+This map captures the `app.js` runtime boundary for the V2 refactor. It began as a pre-extraction map and now serves as the guardrail for the paused good-enough module architecture. If a future extraction changes these flows, it should be treated as a regression unless the change is intentional and separately planned.
+
+## Current Module Boundary
+
+V2 now keeps deterministic processors in focused classic-script modules:
+
+- `modules/canvas-utils.js`
+- `modules/value-processors.js`
+- `modules/mask-processors.js`
+- `modules/palette-processors.js`
+- `modules/observation-processors.js`
+
+`app.js` remains responsible for:
+
+- app state
+- DOM event wiring
+- image loading
+- composition selection
+- derived canvas lifecycle orchestration
+- render routing
+- export and sheet-preview orchestration
+- service worker registration
+
+This boundary is intentionally not perfect. It is good enough for future modules without taking on the higher regression risk of composition, export, or runtime-state rewrites.
 
 ## High-Risk Runtime Flow
 
@@ -160,35 +183,37 @@ Extract export helpers only after pure processor extraction has passed smoke che
 
 - `./`
 - `./index.html`
-- `./styles.css`
-- `./app.js`
+- versioned app-shell assets such as `./styles.css?v=23`
+- versioned runtime scripts such as `./app.js?v=23`
+- versioned module scripts under `./modules/`
 - `./manifest.webmanifest`
 - `./icons/icon.svg`
 
 Important behavior:
 
 - Cache name is explicit.
-- App shell changes should bump `CACHE_NAME`.
+- App shell changes should bump `CACHE_NAME`, versioned asset query strings, and `APP_VERSION_LABEL`.
+- The visible build chip should show the expected build before manual smoke testing.
 - The fetch handler serves cached assets first and falls back to `index.html` when offline.
 
-When V2 introduces new module files, those files must be added to `APP_ASSETS` and the cache version must be bumped.
+When V2 introduces new module files, those files must be added to `APP_ASSETS`, loaded before `app.js`, and included in the build/version bump.
 
-## First Extraction Boundary Candidates
+## Future Extraction Boundaries
 
-Lowest-risk candidates:
+Completed low-risk extractions:
 
 - canvas sizing, clearing, cloning, and contained-image helpers
 - grayscale processor
 - Notan processor
 
-Medium-risk candidates:
+Completed medium-risk extractions:
 
 - tonal masks
 - temperature masks
 - squint and outline helpers
 - palette extraction and palette note rendering
 
-Higher-risk candidates:
+Deferred higher-risk candidates:
 
 - composition crop flow
 - render routing
@@ -196,4 +221,4 @@ Higher-risk candidates:
 - state shape
 - export and sheet builders
 
-The first code extraction should start only with the lowest-risk candidates.
+These are intentionally paused. Resume only when future work creates concrete pressure in one of these areas.

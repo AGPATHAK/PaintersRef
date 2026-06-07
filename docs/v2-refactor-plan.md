@@ -8,6 +8,29 @@ The current stable prototype remains protected on `main`, with `prl-stable-v1` a
 
 AI work is out of scope for this plan because a separate AI app is being developed. V2 should make the existing deterministic app easier to maintain before any new modules or product features are added.
 
+## Current Status
+
+**Status:** Good-enough refactor checkpoint / paused
+
+The first V2 refactor pass has achieved the intended maintainability goal without changing product behavior. Deterministic processing helpers have been extracted from `app.js` into focused classic-script modules, while app orchestration remains in `app.js`.
+
+Current module pattern:
+
+- `modules/canvas-utils.js` - canvas sizing, clearing, fitting, cloning, and scale helpers
+- `modules/value-processors.js` - grayscale and 3-value Notan processors
+- `modules/mask-processors.js` - tonal masks, temperature masks, and shared HSL helpers
+- `modules/palette-processors.js` - palette extraction, mix-note analysis, and palette study rendering
+- `modules/observation-processors.js` - outline, mirror, and Squint processors
+
+Current app shell rule:
+
+- Add new classic scripts before `app.js` in `index.html`.
+- Add new app-shell assets to `APP_ASSETS` in `service-worker.js`.
+- Bump `CACHE_NAME`, versioned asset query strings, and `APP_VERSION_LABEL` together.
+- Confirm the visible build chip shows the expected build before smoke testing.
+
+This checkpoint is enough to support future modules. Do not continue refactoring just to reduce line count.
+
 ## Goals
 
 - Preserve all current user-facing behavior.
@@ -75,6 +98,10 @@ Rules:
 - Do not recalibrate recipes during extraction.
 - Do not add new user-facing options.
 
+Status:
+
+- Completed in the V2 refactor branch.
+
 ### 4. Extract Export And Sheet Builders Later
 
 Move export and study-sheet builder logic only after the lower-risk processors have been extracted and smoke checks are reliable.
@@ -84,6 +111,10 @@ Rules:
 - Preserve current export filenames, formats, layouts, and sheet content.
 - Preserve Sheet 1, Sheet 2, and Sheet 3 preview/export behavior.
 - Keep current-view export separate from sheet export.
+
+Status:
+
+- Deferred. Export and sheet helpers remain in `app.js` because the current boundary is good enough and exports are trust-heavy.
 
 ### 5. Leave App Runtime Wiring Until Later
 
@@ -97,6 +128,10 @@ Do not start by extracting or redesigning:
 - stage/view routing
 
 These areas are behavior-sensitive and should be revisited only after helper extraction is stable.
+
+Status:
+
+- Deferred. Runtime wiring remains in `app.js` intentionally.
 
 ## Rollback Discipline
 
@@ -148,3 +183,13 @@ Optional later safety:
 - `codex/v2` is the active branch for this plan and future refactor work.
 - The stable prototype remains available from `main` and `prl-stable-v1`.
 - AI work remains separate from this PWA refactor.
+
+## Pause Guidance
+
+Pause the refactor here unless a future feature creates direct pressure around composition, export, or runtime state.
+
+Reasonable next work can now be feature/module work using the established module pattern. If refactoring resumes, prefer one of these targeted follow-ups:
+
+- extract composition helpers only if composition work is planned
+- extract export helpers only if export/sheet changes are planned
+- clarify runtime state only if repeated changes make current state ownership confusing
