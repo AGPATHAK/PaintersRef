@@ -1,4 +1,4 @@
-# Painter's Ref Lab M1 Smoke Test
+# Painter's Ref Lab Smoke Test
 
 ## Setup
 
@@ -9,46 +9,70 @@
 
 ## Core Workflow Checks
 
-### Baseline
+### Reference Image
 
 - [ ] Image loads correctly.
 - [ ] Canvas fits viewport.
 - [ ] Dark/light theme toggle works.
+- [ ] Change Image flow works.
+- [ ] Header file chip updates.
 
-### Composition
+### Grid
 
 - [ ] Grid on/off works.
 - [ ] Change rows/columns.
+
+### Composition
+
 - [ ] Place focal point.
 - [ ] Crop size changes.
 - [ ] Select crop.
 - [ ] Clear selection.
 
-### Observation
-
-- [ ] Squint mode works.
-- [ ] Softness slider updates result.
-
 ### Drawing
 
-- [ ] Outline low/medium/high presets work.
+- [ ] Outline Sketch works.
+- [ ] Outline Source options work.
+- [ ] Simple / Balanced / Detailed outline presets work.
 - [ ] Mirror check works.
 
 ### Painting
 
+- [ ] Squint mode works.
+- [ ] Squint Softness slider updates result.
 - [ ] Grayscale view works.
-- [ ] Notan view works.
-- [ ] Threshold reset works.
-- [ ] Light/mid/shadow masks work.
+- [ ] 3-Value Notan view works.
+- [ ] Notan cutoffs update result.
+- [ ] Reset to Standard works.
+- [ ] Light / Midtone / Shadow masks work.
 - [ ] Temperature study works.
+- [ ] Focus on Color updates result.
+- [ ] Warm/Cool Balance updates result.
 - [ ] Palette notes appear.
 
 ### Exports
 
-- [ ] Export current view.
-- [ ] Export sheet 1.
-- [ ] Export sheet 2.
-- [ ] Export sheet 3.
+- [ ] Export Current View works.
+- [ ] Sheet 1 preview works.
+- [ ] Sheet 2 preview works.
+- [ ] Sheet 3 preview works.
+- [ ] Export Current Sheet works from each preview.
+- [ ] Close Preview returns to regular view behavior.
+
+### Info
+
+- [ ] Status updates.
+- [ ] Original size updates.
+- [ ] Canvas size updates.
+- [ ] Scale updates.
+- [ ] View updates.
+- [ ] Outline detail updates.
+
+### PWA / Cache
+
+- [ ] App shell loads after refresh.
+- [ ] Service worker cache version was bumped when app shell files changed.
+- [ ] New app shell assets are listed in `APP_ASSETS`.
 
 ### Stability
 
@@ -63,4 +87,3 @@ Date:
 Branch:
 
 Result: Pass / Needs Fixes
-
