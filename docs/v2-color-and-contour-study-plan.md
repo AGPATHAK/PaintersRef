@@ -35,6 +35,11 @@ Possible first presets:
 - Tonal Old Master - warm earths, subdued reds, muted green/blue-gray shadows
 - Watercolor Economy - a small restrained watercolor-planning palette inspired by economical palette use
 
+Palette calibration note:
+
+- Even earth-limited palettes can include subdued greens; a painter can approximate green by mixing blue with raw sienna or related earth yellows.
+- Avoid unwanted green casts in blue skies, but do not remove all green possibility from earth or watercolor economy studies.
+
 Artist references:
 
 - Use references such as Edward Wesson only for palette economy, restraint, and broad color tendency.

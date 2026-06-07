@@ -503,6 +503,7 @@ input[type="range"]::-moz-range-thumb {
 .painting-view-grid .view-mode-button[data-view-mode="grayscale"],
 .painting-view-grid .view-mode-button[data-view-mode="notan"],
 .painting-view-grid .view-mode-button[data-view-mode="temperatureStudy"],
+.painting-view-grid .view-mode-button[data-view-mode="colorStudy"],
 .painting-view-grid .view-mode-button[data-view-mode="paletteStudy"] {
   grid-column: span 3;
 }
@@ -601,6 +602,10 @@ input[type="range"]::-moz-range-thumb {
 }
 
 #outlineControlsSection select {
+  margin-bottom: 2px;
+}
+
+#colorStudyControlsSection select {
   margin-bottom: 2px;
 }
 

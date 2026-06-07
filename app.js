@@ -24,7 +24,7 @@
    App Configuration / Constants
    ================================================== */
 
-const APP_VERSION_LABEL = "V2 build 23";
+const APP_VERSION_LABEL = "V2 build 25";
 const SUPPORTED_TYPES = ["image/jpeg", "image/png"];
 
 const COMPOSITION_CROP_OPTIONS = [
@@ -489,6 +489,9 @@ class PaintersReferenceApp {
       temperatureNeutralThresholdValue: document.getElementById("temperatureNeutralThresholdValue"),
       temperaturePivotInput: document.getElementById("temperaturePivotInput"),
       temperaturePivotValue: document.getElementById("temperaturePivotValue"),
+      colorStudyControlsSection: document.getElementById("colorStudyControlsSection"),
+      colorStudyPresetInput: document.getElementById("colorStudyPresetInput"),
+      colorStudyPresetLabel: document.getElementById("colorStudyPresetLabel"),
       resetNotanButton: document.getElementById("resetNotanButton"),
       focalRadiusInput: document.getElementById("focalRadiusInput"),
       focalRadiusValue: document.getElementById("focalRadiusValue"),
@@ -565,6 +568,9 @@ class PaintersReferenceApp {
         neutralThreshold: 20,
         pivot: 140
       },
+      colorStudy: {
+        preset: "complementary"
+      },
       focalStudy: {
         point: null,
         cropPercent: 72
@@ -587,6 +593,7 @@ class PaintersReferenceApp {
         warmMaskCanvas: null,
         coolMaskCanvas: null,
         neutralMaskCanvas: null,
+        colorStudyCanvas: null,
         outlineSketchCanvas: null,
         squintCanvas: null,
         mirrorCanvas: null,
@@ -675,6 +682,7 @@ class PaintersReferenceApp {
       midtoneMask: "painting",
       shadowMask: "painting",
       temperatureStudy: "painting",
+      colorStudy: "painting",
       paletteStudy: "painting"
     };
 
@@ -809,6 +817,15 @@ class PaintersReferenceApp {
       this.updateTemperatureControls();
       this.renderScene();
     });
+
+    if (this.dom.colorStudyPresetInput) {
+      this.dom.colorStudyPresetInput.addEventListener("change", () => {
+        this.state.colorStudy.preset = this.dom.colorStudyPresetInput.value || "complementary";
+        this.refreshColorStudyCanvas();
+        this.updateColorStudyControls();
+        this.renderScene();
+      });
+    }
 
     this.dom.focalRadiusInput.addEventListener("input", () => {
       this.state.focalStudy.cropPercent = this.getSafeInteger(
@@ -953,6 +970,7 @@ class PaintersReferenceApp {
     this.updateSquintControls();
     this.updateNotanControls();
     this.updateTemperatureControls();
+    this.updateColorStudyControls();
     this.updateFocalStudyControls();
     this.updateStudySheetPreviewControls();
     this.updateReferenceSection();
@@ -986,6 +1004,7 @@ class PaintersReferenceApp {
       midtoneMask: "Midtone Mask",
       shadowMask: "Shadow Mask",
       temperatureStudy: "Temperature Study",
+      colorStudy: "Color Study",
       paletteStudy: "Palette Notes",
       outlineSketch: "Rough Outline Sketch",
       squint: "Squint",
@@ -1052,6 +1071,7 @@ class PaintersReferenceApp {
       midtoneMask: "Midtone Mask",
       shadowMask: "Shadow Mask",
       temperatureStudy: "Temperature Study",
+      colorStudy: "Color Study",
       paletteStudy: "Palette Notes"
     };
 
@@ -1081,6 +1101,10 @@ class PaintersReferenceApp {
       this.state.activeStage === "painting" &&
       this.state.viewMode === "temperatureStudy";
     this.dom.temperatureControlsSection.classList.toggle("is-hidden", !isTemperatureActive);
+
+    const isColorStudyActive =
+      this.state.activeStage === "painting" && this.state.viewMode === "colorStudy";
+    this.dom.colorStudyControlsSection.classList.toggle("is-hidden", !isColorStudyActive);
 
     this.updateStudySheetPreviewControls();
   }
@@ -1156,6 +1180,17 @@ class PaintersReferenceApp {
     this.dom.temperaturePivotInput.value = this.state.temperature.pivot;
     this.dom.temperaturePivotValue.textContent = `${this.state.temperature.pivot}\u00b0`;
     this.updateRangeFills();
+  }
+
+  updateColorStudyControls() {
+    if (this.dom.colorStudyPresetInput) {
+      this.dom.colorStudyPresetInput.value = this.state.colorStudy.preset;
+    }
+
+    if (this.dom.colorStudyPresetLabel) {
+      this.dom.colorStudyPresetLabel.textContent =
+        getColorStudyPresetLabel(this.state.colorStudy.preset);
+    }
   }
 
   updateFocalStudyControls() {
@@ -1271,6 +1306,17 @@ class PaintersReferenceApp {
     );
   }
 
+  refreshColorStudyCanvas() {
+    if (!this.state.processed.originalCanvas) {
+      return;
+    }
+
+    this.state.processed.colorStudyCanvas = createColorStudyCanvasFromCanvas(
+      this.state.processed.originalCanvas,
+      this.state.colorStudy.preset
+    );
+  }
+
   refreshOutlineCanvas() {
     const outlineSourceCanvas = this.getOutlineSourceCanvas();
     if (!outlineSourceCanvas) {
@@ -1378,6 +1424,10 @@ class PaintersReferenceApp {
       "neutral",
       this.state.temperature
     );
+    const colorStudyCanvas = createColorStudyCanvasFromCanvas(
+      originalCanvas,
+      this.state.colorStudy.preset
+    );
 
     const squintCanvas = createSquintCanvasFromGrayscaleCanvas(grayscaleCanvas, this.state.squint);
     const outlineSourceCanvas = this.getOutlineSourceCanvasFromCanvases({
@@ -1403,6 +1453,7 @@ class PaintersReferenceApp {
     this.state.processed.warmMaskCanvas = warmMaskCanvas;
     this.state.processed.coolMaskCanvas = coolMaskCanvas;
     this.state.processed.neutralMaskCanvas = neutralMaskCanvas;
+    this.state.processed.colorStudyCanvas = colorStudyCanvas;
     this.state.processed.outlineSketchCanvas = outlineSketchCanvas;
     this.state.processed.squintCanvas = squintCanvas;
     this.state.processed.mirrorCanvas = mirrorCanvas;
@@ -1560,6 +1611,7 @@ class PaintersReferenceApp {
       lightMask: this.state.processed.lightMaskCanvas,
       midtoneMask: this.state.processed.midtoneMaskCanvas,
       shadowMask: this.state.processed.shadowMaskCanvas,
+      colorStudy: this.state.processed.colorStudyCanvas,
       outlineSketch: this.getActiveOutlineCanvas(),
       squint: this.state.processed.squintCanvas,
       mirror: this.state.processed.mirrorCanvas,
@@ -1824,6 +1876,66 @@ class PaintersReferenceApp {
     this.updateOutlineDetailLabel();
   }
 
+  renderColorStudyScene() {
+    const originalCanvas = this.state.processed.originalCanvas;
+    const colorStudyCanvas = this.state.processed.colorStudyCanvas;
+    if (!originalCanvas || !colorStudyCanvas) {
+      return;
+    }
+
+    const labelHeight = 46;
+    const margin = 24;
+    const gutter = 24;
+    const panelImageSize = computeContainSize(
+      originalCanvas.width,
+      originalCanvas.height,
+      620,
+      620
+    );
+    const panelWidth = panelImageSize.width;
+    const panelHeight = panelImageSize.height + labelHeight;
+    const canvasWidth = (margin * 2) + (panelWidth * 2) + gutter;
+    const canvasHeight = (margin * 2) + panelHeight;
+    const studyLabel = getColorStudyPresetLabel(this.state.colorStudy.preset);
+
+    setCanvasSize(this.dom.mainCanvas, canvasWidth, canvasHeight);
+    clearCanvas(this.ctx, this.dom.mainCanvas);
+
+    drawPanel(
+      this.ctx,
+      originalCanvas,
+      margin,
+      margin,
+      panelWidth,
+      panelHeight,
+      this.getCompositionChoiceLabel(),
+      {
+        labelHeight,
+        sublabel: "Current reference"
+      }
+    );
+
+    drawPanel(
+      this.ctx,
+      colorStudyCanvas,
+      margin + panelWidth + gutter,
+      margin,
+      panelWidth,
+      panelHeight,
+      studyLabel,
+      {
+        labelHeight,
+        sublabel: "Approximate palette study"
+      }
+    );
+
+    this.focalStudyLayout = null;
+    this.updateStatus(`${studyLabel} ready`);
+    this.updateInfo();
+    this.updateViewModeLabel();
+    this.updateOutlineDetailLabel();
+  }
+
   renderPaletteStudyScene() {
     const originalCanvas = this.state.processed.originalCanvas;
     if (!originalCanvas) {
@@ -1861,6 +1973,11 @@ class PaintersReferenceApp {
 
     if (this.state.viewMode === "temperatureStudy") {
       this.renderTemperatureStudyScene();
+      return;
+    }
+
+    if (this.state.viewMode === "colorStudy") {
+      this.renderColorStudyScene();
       return;
     }
 
