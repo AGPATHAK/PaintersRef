@@ -24,6 +24,7 @@
    App Configuration / Constants
    ================================================== */
 
+const APP_VERSION_LABEL = "V2 build 20";
 const SUPPORTED_TYPES = ["image/jpeg", "image/png"];
 
 const COMPOSITION_CROP_OPTIONS = [
@@ -87,70 +88,6 @@ async function fileToImageElement(file) {
 /* ==================================================
    Core Canvas And Painting Transforms
    ================================================== */
-
-/* ---------------------------------
-   Grayscale processing
---------------------------------- */
-
-function createGrayscaleCanvasFromCanvas(sourceCanvas) {
-  const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
-
-  outputCtx.drawImage(sourceCanvas, 0, 0);
-
-  const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-  const { data } = imageData;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const gray = Math.round((0.299 * r) + (0.587 * g) + (0.114 * b));
-
-    data[i] = gray;
-    data[i + 1] = gray;
-    data[i + 2] = gray;
-  }
-
-  outputCtx.putImageData(imageData, 0, 0);
-  return outputCanvas;
-}
-
-/* ---------------------------------
-   3-value Notan processing
---------------------------------- */
-
-function createNotanCanvasFromGrayscaleCanvas(grayscaleCanvas, options = {}) {
-  const {
-    shadowCutoff = 85,
-    lightCutoff = 170
-  } = options;
-  const outputCanvas = createOffscreenCanvas(grayscaleCanvas.width, grayscaleCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
-
-  outputCtx.drawImage(grayscaleCanvas, 0, 0);
-
-  const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-  const { data } = imageData;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const value = data[i];
-    let posterized = 255;
-
-    if (value <= shadowCutoff) {
-      posterized = 0;
-    } else if (value < lightCutoff) {
-      posterized = 127;
-    }
-
-    data[i] = posterized;
-    data[i + 1] = posterized;
-    data[i + 2] = posterized;
-  }
-
-  outputCtx.putImageData(imageData, 0, 0);
-  return outputCanvas;
-}
 
 /* ---------------------------------
    Tonal mask processing
@@ -1371,6 +1308,7 @@ class PaintersReferenceApp {
       referenceSummary: document.getElementById("referenceSummary"),
       referenceFileName: document.getElementById("referenceFileName"),
       headerFileChip: document.getElementById("headerFileChip"),
+      appVersionChip: document.getElementById("appVersionChip"),
       themeToggleButton: document.getElementById("themeToggleButton"),
       changeImageButton: document.getElementById("changeImageButton"),
       mainCanvas: document.getElementById("mainCanvas"),
@@ -1521,9 +1459,17 @@ class PaintersReferenceApp {
     this.focalStudyLayout = null;
 
     this.initializeTheme();
+    this.updateAppVersion();
     this.bindEvents();
     this.initializeCanvas();
     this.syncControls();
+  }
+
+  updateAppVersion() {
+    if (this.dom.appVersionChip) {
+      this.dom.appVersionChip.textContent = APP_VERSION_LABEL;
+      this.dom.appVersionChip.setAttribute("title", `Loaded ${APP_VERSION_LABEL}`);
+    }
   }
 
   initializeTheme() {

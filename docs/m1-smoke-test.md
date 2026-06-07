@@ -11,6 +11,7 @@
 
 ### Reference Image
 
+- [ ] Visible build chip shows expected version.
 - [ ] Image loads correctly.
 - [ ] Canvas fits viewport.
 - [ ] Dark/light theme toggle works.
