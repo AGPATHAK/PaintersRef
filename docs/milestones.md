@@ -26,15 +26,16 @@ M1 ended with a usable deterministic foundation and a clear decision to defer de
 ### Completed in M2
 
 - Tinted tonal-mask workflow stabilized
-- Export Current View exposed as a visible action
+- Print This View exposed as a first-level visible action
 - 3-sheet preview/export workflow implemented
-- Export stage contains current-view export plus sheet preview/export controls
+- Export stage contains prepared sheet preview/export controls
 - Composition guidance visibility improved
 - Composition crop-size slider behavior fixed so all intended previews respond
 - Selected composition crop remains aligned with the clicked preview
 - Sidebar reorganized into Reference Image, Composition, Drawing, Painting, Export, and Info
 - Squint moved to Painting
 - Drawing focused on Outline Sketch, Mirror Check, Outline Source, and outline detail
+- Value Contours added as a drawing aid
 - Outline Source selection added: Gray, Squint, Original, Notan
 - Extra visible outline-local controls removed
 - Curated outline recipes added behind Simple / Balanced / Detailed detail
@@ -58,6 +59,7 @@ M1 ended with a usable deterministic foundation and a clear decision to defer de
   - Original or selected crop can become the working reference
 - **Drawing**
   - Outline Sketch
+  - Value Contours
   - Mirror Check
   - Outline Source
   - Simple / Balanced / Detailed outline detail
@@ -67,9 +69,11 @@ M1 ended with a usable deterministic foundation and a clear decision to defer de
   - 3-Value Notan
   - Light / Midtone / Shadow masks
   - Temperature Study
+  - Color Study
   - Palette Notes
+- **First-level action**
+  - Print This View
 - **Export**
-  - Export Current View
   - Sheet preview/export workflow
 - **Info**
   - Compact status and image/view metadata

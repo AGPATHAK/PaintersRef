@@ -23,6 +23,7 @@ https://agpathak.github.io/PaintersRef/
   - Info
 - Provides drawing aids:
   - Outline Sketch
+  - Value Contours
   - Mirror Check
   - Outline Source: Gray, Squint, Original, Notan
   - Curated outline detail: Simple, Balanced, Detailed
@@ -34,10 +35,11 @@ https://agpathak.github.io/PaintersRef/
   - Midtone Mask
   - Shadow Mask
   - Temperature Study
+  - Color Study palette variants
   - Palette Notes
 - Adds a configurable grid with adjustable rows and columns
 - Includes a light/dark interface toggle for different studio lighting conditions
-- Exports the current view directly as a JPEG
+- Prints the active study view directly as a JPEG
 - Previews and exports three prepared study sheets
 - Works as a Progressive Web App (PWA) for installable, offline-friendly use
 
@@ -48,9 +50,9 @@ https://agpathak.github.io/PaintersRef/
 3. Move through the workflow stages on the left:
    - `Reference Image`: load/change the image and adjust the grid
    - `Composition`: place a point of interest, keep the original, or select one of four crop studies
-   - `Drawing`: use `Outline Sketch`, `Mirror Check`, `Outline Source`, and `Simple / Balanced / Detailed`
-   - `Painting`: use `Squint`, grayscale, Notan, masks, temperature, and palette views
-   - `Export`: export the current view or preview/export prepared sheets
+   - `Drawing`: use `Outline Sketch`, `Value Contours`, `Mirror Check`, `Outline Source`, and `Simple / Balanced / Detailed`
+   - `Painting`: use `Squint`, grayscale, Notan, masks, temperature, Color Study, and palette views
+   - `Export`: preview/export prepared sheets
    - `Info`: check status, size, scale, active view, and outline detail
 4. Adjust painter-facing controls when needed:
    - crop size
@@ -58,7 +60,7 @@ https://agpathak.github.io/PaintersRef/
    - Notan shadow/light cutoffs
    - Focus on Color
    - Warm/Cool Balance
-5. Export the current view or one of the prepared sheets.
+5. Use `Print This View` for the active study, or export one of the prepared sheets.
 
 ## Export Sheets
 
@@ -91,11 +93,11 @@ https://agpathak.github.io/PaintersRef/
 - `Composition`
   `Focal Study` creates four rule-of-thirds crop options around a chosen point of interest. The selected crop, or the original image, becomes the working reference for later stages.
 - `Drawing`
-  `Outline Sketch` supports block-in, and `Mirror Check` helps with structural checking. Outline generation uses a selected source and curated Simple / Balanced / Detailed recipes.
+  `Outline Sketch` supports block-in, `Value Contours` groups value boundaries for simplified drawing decisions, and `Mirror Check` helps with structural checking. Outline generation uses a selected source and curated Simple / Balanced / Detailed recipes.
 - `Painting`
-  `Squint`, grayscale, Notan, value masks, Temperature Study, and Palette Notes help simplify value and color relationships while painting.
+  `Squint`, grayscale, Notan, value masks, Temperature Study, Color Study, and Palette Notes help simplify value and color relationships while painting.
 - `Export`
-  Export the current canvas view or preview/export prepared study sheets.
+  Preview/export prepared study sheets. Use `Print This View` for the active canvas study.
 - `Info`
   Shows compact status and image/view metadata.
 
@@ -133,8 +135,8 @@ The `codex/v2` branch has a behavior-preserving module split for deterministic p
 - canvas utilities
 - grayscale / Notan processors
 - tonal and temperature masks
-- palette notes
-- outline, mirror, and Squint helpers
+- palette notes and Color Study variants
+- outline, Value Contours, mirror, and Squint helpers
 
 The visible build chip in the header shows the loaded V2 build. When app-shell files change, bump the build label, script query strings, and service-worker cache together so stale loads are easy to spot.
 

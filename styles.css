@@ -193,6 +193,15 @@ input:focus-visible {
   color: var(--text);
 }
 
+.print-view-section {
+  padding: 9px;
+}
+
+.print-view-section .helper-text {
+  margin-top: 7px;
+  margin-bottom: 0;
+}
+
 .workflow-stage {
   padding: 0;
   overflow: hidden;

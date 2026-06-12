@@ -24,7 +24,7 @@
    App Configuration / Constants
    ================================================== */
 
-const APP_VERSION_LABEL = "V2 build 28";
+const APP_VERSION_LABEL = "V2 build 30";
 const SUPPORTED_TYPES = ["image/jpeg", "image/png"];
 
 const COMPOSITION_CROP_OPTIONS = [
@@ -900,12 +900,13 @@ class PaintersReferenceApp {
         }
 
         if (stage === "general") {
-          if (this.state.processed.originalCanvas) {
-            this.openStudySheetPreview();
-          } else {
-            this.state.activeStage = "general";
-            this.updateStagePanels();
+          this.state.activeStage = "general";
+          this.state.studySheetPreview.isOpen = false;
+          this.updateStagePanels();
+          if (!this.state.processed.originalCanvas) {
             this.renderScene();
+          } else {
+            this.updateStatus("Export options ready");
           }
           return;
         }
@@ -935,6 +936,11 @@ class PaintersReferenceApp {
       button.addEventListener("click", () => {
         const sheetKey = button.dataset.sheetPreview;
         if (!sheetKey) {
+          return;
+        }
+
+        if (this.state.activeStage === "general" && this.state.processed.originalCanvas) {
+          this.openStudySheetPreview(sheetKey);
           return;
         }
 
@@ -1274,27 +1280,34 @@ class PaintersReferenceApp {
 
   updateStudySheetPreviewControls() {
     const hasLoadedImage = Boolean(this.state.processed.originalCanvas);
+    const isExportStage = this.state.activeStage === "general";
     const isPreviewOpen = this.state.studySheetPreview.isOpen && hasLoadedImage;
+    const showSheetControls = isExportStage && hasLoadedImage;
     const activeLabel = this.getStudySheetLabel();
 
     if (this.dom.sheetPreviewPanel) {
-      this.dom.sheetPreviewPanel.classList.toggle("is-hidden", !isPreviewOpen);
+      this.dom.sheetPreviewPanel.classList.toggle("is-hidden", !showSheetControls);
     }
 
     if (this.dom.sheetPreviewLabel) {
-      this.dom.sheetPreviewLabel.textContent = activeLabel;
+      this.dom.sheetPreviewLabel.textContent = isPreviewOpen ? activeLabel : "Choose";
     }
 
     if (this.dom.generalPreviewHelpText) {
-      this.dom.generalPreviewHelpText.classList.toggle("is-hidden", isPreviewOpen);
+      this.dom.generalPreviewHelpText.classList.toggle("is-hidden", showSheetControls);
     }
 
     if (this.dom.exportPreviewSheetButton) {
-      this.dom.exportPreviewSheetButton.disabled = !hasLoadedImage;
+      this.dom.exportPreviewSheetButton.disabled = !isPreviewOpen;
+    }
+
+    if (this.dom.closeSheetPreviewButton) {
+      this.dom.closeSheetPreviewButton.disabled = !isPreviewOpen;
     }
 
     this.dom.sheetPreviewButtons.forEach((button) => {
-      const isActive = button.dataset.sheetPreview === this.state.studySheetPreview.activeSheet;
+      const isActive =
+        isPreviewOpen && button.dataset.sheetPreview === this.state.studySheetPreview.activeSheet;
       button.classList.toggle("is-active", isActive);
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
       button.disabled = !hasLoadedImage;
@@ -2243,6 +2256,12 @@ class PaintersReferenceApp {
     if (!this.state.processed.originalCanvas) {
       alert("Please load an image before exporting.");
       return;
+    }
+
+    if (this.state.studySheetPreview.isOpen) {
+      this.state.studySheetPreview.isOpen = false;
+      this.updateStagePanels();
+      this.renderScene();
     }
 
     const viewLabel = this.dom.viewModeText.textContent || "current-view";
