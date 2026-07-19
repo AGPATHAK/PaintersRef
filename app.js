@@ -1356,12 +1356,40 @@ class PaintersReferenceApp {
       return;
     }
 
+    const notanCutoffs = {
+      shadowCutoff: this.state.notan.shadowCutoff,
+      lightCutoff: this.state.notan.lightCutoff
+    };
+
     this.state.processed.notanCanvas = createNotanCanvasFromGrayscaleCanvas(
       this.state.processed.grayscaleCanvas,
-      {
-        shadowCutoff: this.state.notan.shadowCutoff,
-        lightCutoff: this.state.notan.lightCutoff
-      }
+      notanCutoffs
+    );
+
+    this.refreshMaskCanvases(notanCutoffs);
+  }
+
+  // Sheet 2's tonal masks always partition the same shadow/light cutoffs as
+  // the notan on Sheet 1.
+  refreshMaskCanvases(notanCutoffs) {
+    if (!this.state.processed.grayscaleCanvas) {
+      return;
+    }
+
+    this.state.processed.lightMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(
+      this.state.processed.grayscaleCanvas,
+      "light",
+      notanCutoffs
+    );
+    this.state.processed.midtoneMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(
+      this.state.processed.grayscaleCanvas,
+      "midtone",
+      notanCutoffs
+    );
+    this.state.processed.shadowMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(
+      this.state.processed.grayscaleCanvas,
+      "shadow",
+      notanCutoffs
     );
   }
 
@@ -1528,9 +1556,9 @@ class PaintersReferenceApp {
     };
     const notanCanvas = createNotanCanvasFromGrayscaleCanvas(grayscaleCanvas, notanCutoffs);
 
-    const lightMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "light");
-    const midtoneMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "midtone");
-    const shadowMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "shadow");
+    const lightMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "light", notanCutoffs);
+    const midtoneMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "midtone", notanCutoffs);
+    const shadowMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "shadow", notanCutoffs);
     const warmMaskCanvas = createTemperatureMaskCanvasFromCanvas(
       originalCanvas,
       "warm",

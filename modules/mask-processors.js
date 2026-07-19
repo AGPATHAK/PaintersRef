@@ -2,7 +2,11 @@
    Mask Processors
    ================================================== */
 
-function createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, maskType) {
+function createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, maskType, options = {}) {
+  const {
+    shadowCutoff = 85,
+    lightCutoff = 170
+  } = options;
   const outputCanvas = createOffscreenCanvas(grayscaleCanvas.width, grayscaleCanvas.height);
   const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
 
@@ -25,11 +29,11 @@ function createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, maskType) {
     let isActive = false;
 
     if (maskType === "light") {
-      isActive = value >= 171;
+      isActive = value >= lightCutoff;
     } else if (maskType === "midtone") {
-      isActive = value >= 86 && value <= 170;
+      isActive = value > shadowCutoff && value < lightCutoff;
     } else if (maskType === "shadow") {
-      isActive = value <= 85;
+      isActive = value <= shadowCutoff;
     }
 
     const fill = isActive ? colors.active : colors.inactive;
