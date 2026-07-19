@@ -419,16 +419,16 @@ function createMirroredCanvasFromCanvas(sourceCanvas) {
   return outputCanvas;
 }
 
-// Softness 0-100 maps to blur radius 0.5%-1.5% of the image diagonal, shared
-// by grayscale and colour squint so both read as the same "half-closed eyes" strength.
-// Kept small: past ~1.5% of diagonal, real reference photos are already
-// fully merged, so a bigger ceiling just wastes the top of the slider.
+// Softness 0-100 maps to a Kuwahara window radius 0.5%-3.0% of the image
+// diagonal, shared by grayscale and colour squint so both read as the same
+// "half-closed eyes" strength. The window can go bigger than a plain blur
+// would tolerate, since Kuwahara refuses to smooth across strong edges.
 function getSquintBlurSettings(softness) {
   const clampedSoftness = clamp(softness, 0, 100);
   const normalized = clampedSoftness / 100;
 
   return {
-    radiusPercent: 0.5 + normalized,
+    radiusPercent: 0.5 + (normalized * 2.5),
     valueLevels: clamp(Math.round(12 - (normalized * 8)), 4, 12)
   };
 }
@@ -437,7 +437,7 @@ function createSquintCanvasFromGrayscaleCanvas(sourceCanvas, options = {}) {
   const { softness = 35 } = options;
   const { radiusPercent, valueLevels } = getSquintBlurSettings(softness);
 
-  const blurredCanvas = createStrongBlurCanvas(sourceCanvas, radiusPercent);
+  const blurredCanvas = createKuwaharaCanvas(sourceCanvas, radiusPercent);
 
   const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
   const outputCtx = outputCanvas.getContext("2d");
@@ -463,15 +463,15 @@ function createSquintCanvasFromGrayscaleCanvas(sourceCanvas, options = {}) {
   return outputCanvas;
 }
 
-// Colour counterpart to the grayscale squint: same blur strength, muted
-// saturation, and posterised lightness, but hue is preserved so masses read
-// as soft muted colour rather than gray.
+// Colour counterpart to the grayscale squint: same edge-preserving smoothing
+// strength, muted saturation, and posterised lightness, but hue is preserved
+// so masses read as soft muted colour rather than gray.
 function createColorSquintCanvasFromCanvas(originalCanvas, options = {}) {
   const { softness = 35 } = options;
   const { radiusPercent, valueLevels } = getSquintBlurSettings(softness);
   const maxStepIndex = valueLevels - 1;
 
-  const blurredCanvas = createStrongBlurCanvas(originalCanvas, radiusPercent);
+  const blurredCanvas = createKuwaharaCanvas(originalCanvas, radiusPercent);
 
   const outputCanvas = createOffscreenCanvas(originalCanvas.width, originalCanvas.height);
   const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
