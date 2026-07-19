@@ -305,36 +305,31 @@ function createMirroredCanvasFromCanvas(sourceCanvas) {
   return outputCanvas;
 }
 
+// Softness 0-100 maps to blur radius 0.5%-4.0% of the image diagonal, shared
+// by grayscale and colour squint so both read as the same "half-closed eyes" strength.
+function getSquintBlurSettings(softness) {
+  const clampedSoftness = clamp(softness, 0, 100);
+  const normalized = clampedSoftness / 100;
+
+  return {
+    radiusPercent: 0.5 + (normalized * 3.5),
+    valueLevels: clamp(Math.round(12 - (normalized * 8)), 4, 12)
+  };
+}
+
 function createSquintCanvasFromGrayscaleCanvas(sourceCanvas, options = {}) {
   const { softness = 35 } = options;
-  const clampedSoftness = clamp(softness, 0, 100);
-  const totalPasses = (clampedSoftness / 100) * 5;
-  const wholePasses = Math.floor(totalPasses);
-  const blendAmount = totalPasses - wholePasses;
-  const normalized = clampedSoftness / 100;
-  const valueLevels = Math.round(12 - (normalized * 8));
+  const { radiusPercent, valueLevels } = getSquintBlurSettings(softness);
 
-  let baseCanvas = sourceCanvas;
-  if (wholePasses > 0) {
-    baseCanvas = createBlurredGrayscaleCanvas(sourceCanvas, wholePasses);
-  }
+  const blurredCanvas = createStrongBlurCanvas(sourceCanvas, radiusPercent);
 
   const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
   const outputCtx = outputCanvas.getContext("2d");
-  outputCtx.drawImage(baseCanvas, 0, 0);
-
-  if (blendAmount > 0.001) {
-    const nextCanvas = createBlurredGrayscaleCanvas(baseCanvas, 1);
-    outputCtx.save();
-    outputCtx.globalAlpha = blendAmount;
-    outputCtx.drawImage(nextCanvas, 0, 0);
-    outputCtx.restore();
-  }
+  outputCtx.drawImage(blurredCanvas, 0, 0);
 
   const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
   const { data } = imageData;
-  const safeLevels = clamp(valueLevels, 4, 12);
-  const maxStepIndex = safeLevels - 1;
+  const maxStepIndex = valueLevels - 1;
 
   for (let i = 0; i < data.length; i += 4) {
     const value = data[i] / 255;

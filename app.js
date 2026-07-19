@@ -623,6 +623,7 @@ class PaintersReferenceApp {
 
     this.maxCanvasDimension = 1600;
     this.focalStudyLayout = null;
+    this.squintRecomputeHandle = null;
 
     this.initializeTheme();
     this.updateAppVersion();
@@ -765,9 +766,8 @@ class PaintersReferenceApp {
         0,
         100
       );
-      this.refreshSquintCanvas();
       this.updateSquintControls();
-      this.renderScene();
+      this.scheduleSquintRecompute();
     });
 
     this.dom.notanShadowCutoffInput.addEventListener("input", () => {
@@ -1408,6 +1408,20 @@ class PaintersReferenceApp {
       this.state.processed.grayscaleCanvas,
       this.state.squint
     );
+  }
+
+  // Recomputing the strong blur on every slider "input" event stutters while
+  // dragging, so coalesce recomputes to one per animation frame.
+  scheduleSquintRecompute() {
+    if (this.squintRecomputeHandle) {
+      cancelAnimationFrame(this.squintRecomputeHandle);
+    }
+
+    this.squintRecomputeHandle = requestAnimationFrame(() => {
+      this.squintRecomputeHandle = null;
+      this.refreshSquintCanvas();
+      this.renderScene();
+    });
   }
 
   refreshMirrorCanvas() {
