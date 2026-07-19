@@ -482,6 +482,7 @@ class PaintersReferenceApp {
       squintControlsSection: document.getElementById("squintControlsSection"),
       squintBlurInput: document.getElementById("squintBlurInput"),
       squintBlurValue: document.getElementById("squintBlurValue"),
+      squintModeButtons: Array.from(document.querySelectorAll("[data-squint-mode]")),
       notanShadowCutoffInput: document.getElementById("notanShadowCutoffInput"),
       notanShadowCutoffValue: document.getElementById("notanShadowCutoffValue"),
       notanLightCutoffInput: document.getElementById("notanLightCutoffInput"),
@@ -554,7 +555,8 @@ class PaintersReferenceApp {
         minimumGap: 10
       },
       squint: {
-        softness: 35
+        softness: 35,
+        mode: "gray"
       },
       valueContour: {
         detail: "medium"
@@ -603,6 +605,7 @@ class PaintersReferenceApp {
         valueContourCanvas: null,
         outlineSketchCanvas: null,
         squintCanvas: null,
+        colorSquintCanvas: null,
         mirrorCanvas: null,
         paletteColors: [],
         paletteMixNotes: []
@@ -768,6 +771,19 @@ class PaintersReferenceApp {
       );
       this.updateSquintControls();
       this.scheduleSquintRecompute();
+    });
+
+    this.dom.squintModeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const mode = button.dataset.squintMode;
+        if (!mode || mode === this.state.squint.mode) {
+          return;
+        }
+
+        this.state.squint.mode = mode;
+        this.updateSquintControls();
+        this.renderScene();
+      });
     });
 
     this.dom.notanShadowCutoffInput.addEventListener("input", () => {
@@ -1221,6 +1237,11 @@ class PaintersReferenceApp {
   updateSquintControls() {
     this.dom.squintBlurInput.value = this.state.squint.softness;
     this.dom.squintBlurValue.textContent = `${this.state.squint.softness}%`;
+    this.dom.squintModeButtons.forEach((button) => {
+      const isActive = button.dataset.squintMode === this.state.squint.mode;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
     this.updateRangeFills();
   }
 
@@ -1408,6 +1429,13 @@ class PaintersReferenceApp {
       this.state.processed.grayscaleCanvas,
       this.state.squint
     );
+
+    if (this.state.processed.originalCanvas) {
+      this.state.processed.colorSquintCanvas = createColorSquintCanvasFromCanvas(
+        this.state.processed.originalCanvas,
+        this.state.squint
+      );
+    }
   }
 
   // Recomputing the strong blur on every slider "input" event stutters while
@@ -1518,6 +1546,7 @@ class PaintersReferenceApp {
     );
 
     const squintCanvas = createSquintCanvasFromGrayscaleCanvas(grayscaleCanvas, this.state.squint);
+    const colorSquintCanvas = createColorSquintCanvasFromCanvas(originalCanvas, this.state.squint);
     const outlineSourceCanvas = this.getOutlineSourceCanvasFromCanvases({
       originalCanvas,
       grayscaleCanvas,
@@ -1545,6 +1574,7 @@ class PaintersReferenceApp {
     this.state.processed.valueContourCanvas = valueContourCanvas;
     this.state.processed.outlineSketchCanvas = outlineSketchCanvas;
     this.state.processed.squintCanvas = squintCanvas;
+    this.state.processed.colorSquintCanvas = colorSquintCanvas;
     this.state.processed.mirrorCanvas = mirrorCanvas;
     this.state.processed.paletteColors = paletteColors;
     this.state.processed.paletteMixNotes = paletteMixNotes;
@@ -1703,7 +1733,9 @@ class PaintersReferenceApp {
       colorStudy: this.state.processed.colorStudyCanvas,
       valueContours: this.state.processed.valueContourCanvas,
       outlineSketch: this.getActiveOutlineCanvas(),
-      squint: this.state.processed.squintCanvas,
+      squint: this.state.squint.mode === "color"
+        ? this.state.processed.colorSquintCanvas
+        : this.state.processed.squintCanvas,
       mirror: this.state.processed.mirrorCanvas,
       paletteStudy: this.state.processed.originalCanvas
     };

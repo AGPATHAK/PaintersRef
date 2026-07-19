@@ -346,3 +346,38 @@ function createSquintCanvasFromGrayscaleCanvas(sourceCanvas, options = {}) {
 
   return outputCanvas;
 }
+
+// Colour counterpart to the grayscale squint: same blur strength, muted
+// saturation, and posterised lightness, but hue is preserved so masses read
+// as soft muted colour rather than gray.
+function createColorSquintCanvasFromCanvas(originalCanvas, options = {}) {
+  const { softness = 35 } = options;
+  const { radiusPercent, valueLevels } = getSquintBlurSettings(softness);
+  const maxStepIndex = valueLevels - 1;
+
+  const blurredCanvas = createStrongBlurCanvas(originalCanvas, radiusPercent);
+
+  const outputCanvas = createOffscreenCanvas(originalCanvas.width, originalCanvas.height);
+  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+  outputCtx.drawImage(blurredCanvas, 0, 0);
+
+  const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
+  const { data } = imageData;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const hsl = rgbToHsl(data[i], data[i + 1], data[i + 2]);
+    const mutedSaturation = hsl.saturation * 0.7;
+    const steppedLightnessStep = Math.round((hsl.lightness / 100) * maxStepIndex);
+    const steppedLightness = (steppedLightnessStep / maxStepIndex) * 100;
+    const rgb = hslToRgb(hsl.hue, mutedSaturation, steppedLightness);
+
+    data[i] = rgb.r;
+    data[i + 1] = rgb.g;
+    data[i + 2] = rgb.b;
+    data[i + 3] = 255;
+  }
+
+  outputCtx.putImageData(imageData, 0, 0);
+
+  return outputCanvas;
+}
