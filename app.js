@@ -1451,21 +1451,18 @@ class PaintersReferenceApp {
   }
 
   refreshSquintCanvas() {
-    if (!this.state.processed.grayscaleCanvas) {
+    if (!this.state.processed.originalCanvas) {
       return;
     }
 
-    this.state.processed.squintCanvas = createSquintCanvasFromGrayscaleCanvas(
-      this.state.processed.grayscaleCanvas,
-      this.state.squint
+    this.state.processed.squintCanvas = createSquintCanvasFromCanvas(
+      this.state.processed.originalCanvas,
+      { softness: this.state.squint.softness, mode: "gray" }
     );
-
-    if (this.state.processed.originalCanvas) {
-      this.state.processed.colorSquintCanvas = createColorSquintCanvasFromCanvas(
-        this.state.processed.originalCanvas,
-        this.state.squint
-      );
-    }
+    this.state.processed.colorSquintCanvas = createSquintCanvasFromCanvas(
+      this.state.processed.originalCanvas,
+      { softness: this.state.squint.softness, mode: "color" }
+    );
   }
 
   // Recomputing the strong blur on every slider "input" event stutters while
@@ -1510,8 +1507,9 @@ class PaintersReferenceApp {
     }
 
     if (sourceKey === "squint") {
-      return createSquintCanvasFromGrayscaleCanvas(canvases.grayscaleCanvas, {
-        softness: this.state.outlineSource.squintSoftness
+      return createSquintCanvasFromCanvas(canvases.originalCanvas, {
+        softness: this.state.outlineSource.squintSoftness,
+        mode: "gray"
       });
     }
 
@@ -1523,8 +1521,9 @@ class PaintersReferenceApp {
     }
 
     if (this.state.outlineSource.graySimplification > 0) {
-      return createSquintCanvasFromGrayscaleCanvas(canvases.grayscaleCanvas, {
-        softness: this.state.outlineSource.graySimplification
+      return createSquintCanvasFromCanvas(canvases.originalCanvas, {
+        softness: this.state.outlineSource.graySimplification,
+        mode: "gray"
       });
     }
 
@@ -1583,8 +1582,14 @@ class PaintersReferenceApp {
       this.state.valueContour
     );
 
-    const squintCanvas = createSquintCanvasFromGrayscaleCanvas(grayscaleCanvas, this.state.squint);
-    const colorSquintCanvas = createColorSquintCanvasFromCanvas(originalCanvas, this.state.squint);
+    const squintCanvas = createSquintCanvasFromCanvas(originalCanvas, {
+      softness: this.state.squint.softness,
+      mode: "gray"
+    });
+    const colorSquintCanvas = createSquintCanvasFromCanvas(originalCanvas, {
+      softness: this.state.squint.softness,
+      mode: "color"
+    });
     const outlineSourceCanvas = this.getOutlineSourceCanvasFromCanvases({
       originalCanvas,
       grayscaleCanvas,

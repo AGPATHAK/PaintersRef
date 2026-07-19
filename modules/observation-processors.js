@@ -419,100 +419,110 @@ function createMirroredCanvasFromCanvas(sourceCanvas) {
   return outputCanvas;
 }
 
-// Softness 0-100 maps to a Kuwahara window radius 0.5%-3.0% of the image
-// diagonal, shared by grayscale and colour squint so both read as the same
-// "half-closed eyes" strength. The window can go bigger than a plain blur
-// would tolerate, since Kuwahara refuses to smooth across strong edges.
-function getSquintBlurSettings(softness) {
-  const clampedSoftness = clamp(softness, 0, 100);
-  const normalized = clampedSoftness / 100;
+// Squint pipeline (docs/squint-algorithm-recommendation.md): value grouping
+// with edge integrity, not smoothing. Downscale to a small working
+// resolution (this itself is the first, cheapest texture-destruction step),
+// iterate a small edge-aware bilateral filter there (mass-forming: texture
+// converges to flat regions while real edges get crisper each pass, since
+// averaging never crosses them), apply a soft value quantization (this is
+// what actually produces the flat-mass look, with boundaries that track
+// real iso-value contours instead of a blur radius), then upscale back.
+// Softness 0-100 drives every stage coherently.
+function getSquintPipelineSettings(softness) {
+  const t = clamp(softness, 0, 100) / 100;
+  const lerp = (a, b, amount) => a + ((b - a) * amount);
 
   return {
-    radiusPercent: 0.5 + (normalized * 2.5),
-    valueLevels: clamp(Math.round(12 - (normalized * 8)), 4, 12)
+    workingWidthRatio: lerp(0.40, 0.14, t),
+    rangeSigma: lerp(10, 26, t),
+    bilateralIterations: softness < 40 ? 2 : 3,
+    valueLevels: Math.round(lerp(9, 4, t)),
+    // NOTE: the research doc (docs/squint-algorithm-recommendation.md §4.1)
+    // originally suggested lerp(0.9, 0.55, t) here. Verified against a real
+    // photo that range keeps the linear (near-identity) term so dominant
+    // that quantization barely deviates from the continuous input at any
+    // softness - no visible value banding. bandSoftness must go near 0 for
+    // the cubic ease term to actually flatten each band; lower still means
+    // harder/more-quantized as softness increases, per the doc's intent.
+    bandSoftness: lerp(0.3, 0.0, t)
   };
 }
 
-// A plain Kuwahara filter is unstable on real photographic texture (dappled
-// foliage, grass): neighbouring pixels can pick different "most uniform"
-// quadrants from noise alone, producing a blotchy, speckled look instead of
-// smooth masses. A light pre-blur removes that fine noise so the quadrant
-// choice is stable, while strong value edges (sky/tree boundary) survive
-// the pre-blur and still get preserved by the Kuwahara pass on top.
-//
-// The pre-blur amount is fixed, not scaled with the requested squint
-// radius: real photo noise/texture sits at roughly the same fine spatial
-// scale regardless of how strong a squint the painter asked for, so even a
-// gentle (low-softness) Kuwahara radius needs this same cleanup pass to
-// avoid the blotchy look.
-const SQUINT_PRE_BLUR_PERCENT = 1.75;
-
-function createSquintSmoothedCanvas(sourceCanvas, radiusPercent) {
-  const preBlurredCanvas = createStrongBlurCanvas(sourceCanvas, SQUINT_PRE_BLUR_PERCENT);
-  return createKuwaharaCanvas(preBlurredCanvas, radiusPercent);
-}
-
-function createSquintCanvasFromGrayscaleCanvas(sourceCanvas, options = {}) {
-  const { softness = 35 } = options;
-  const { radiusPercent, valueLevels } = getSquintBlurSettings(softness);
-
-  const blurredCanvas = createSquintSmoothedCanvas(sourceCanvas, radiusPercent);
-
-  const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d");
-  outputCtx.drawImage(blurredCanvas, 0, 0);
-
-  const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
+// Soft luminance quantization: eases into and out of each flat value step
+// instead of a hard round, so a smooth gradient settles into a few
+// gently-transitioning bands (stable, painterly) rather than a wandering
+// hard contour. At a real silhouette (large value gap) the eased transition
+// is far narrower than the gap, so that edge still reads crisp.
+function applySquintValueQuantization(sourceCanvas, options) {
+  const { levels, bandSoftness, mode } = options;
+  const width = sourceCanvas.width;
+  const height = sourceCanvas.height;
+  const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
+  const imageData = sourceCtx.getImageData(0, 0, width, height);
   const { data } = imageData;
-  const maxStepIndex = valueLevels - 1;
+
+  const maxLevelIndex = Math.max(1, levels - 1);
+  const step = 1 / maxLevelIndex;
 
   for (let i = 0; i < data.length; i += 4) {
-    const value = data[i] / 255;
-    const steppedValue = Math.round(value * maxStepIndex) / maxStepIndex;
-    const gray = Math.round(steppedValue * 255);
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const luma = ((0.299 * r) + (0.587 * g) + (0.114 * b)) / 255;
 
-    data[i] = gray;
-    data[i + 1] = gray;
-    data[i + 2] = gray;
+    const qNearest = Math.round(luma / step) * step;
+    const delta = (luma - qNearest) / step;
+    const softDelta = delta * (bandSoftness + ((1 - bandSoftness) * 4 * delta * delta));
+    const quantizedLuma = clamp(qNearest + (softDelta * step), 0, 1);
+
+    if (mode === "color") {
+      const chromaScale = luma > 0.001 ? quantizedLuma / luma : 1;
+      const scaledR = clamp(r * chromaScale, 0, 255);
+      const scaledG = clamp(g * chromaScale, 0, 255);
+      const scaledB = clamp(b * chromaScale, 0, 255);
+      const gray = quantizedLuma * 255;
+      const chromaMix = 0.8;
+
+      data[i] = Math.round(gray + (chromaMix * (scaledR - gray)));
+      data[i + 1] = Math.round(gray + (chromaMix * (scaledG - gray)));
+      data[i + 2] = Math.round(gray + (chromaMix * (scaledB - gray)));
+    } else {
+      const gray = Math.round(quantizedLuma * 255);
+      data[i] = gray;
+      data[i + 1] = gray;
+      data[i + 2] = gray;
+    }
+
     data[i + 3] = 255;
   }
 
-  outputCtx.putImageData(imageData, 0, 0);
-
-  return outputCanvas;
+  sourceCtx.putImageData(imageData, 0, 0);
+  return sourceCanvas;
 }
 
-// Colour counterpart to the grayscale squint: same edge-preserving smoothing
-// strength, muted saturation, and posterised lightness, but hue is preserved
-// so masses read as soft muted colour rather than gray.
-function createColorSquintCanvasFromCanvas(originalCanvas, options = {}) {
-  const { softness = 35 } = options;
-  const { radiusPercent, valueLevels } = getSquintBlurSettings(softness);
-  const maxStepIndex = valueLevels - 1;
+// Shared squint processor for both Painting-stage views (Gray/Colour) and
+// the Drawing-stage "Outline Source: Squint" recipe. Always takes the
+// colour original as input, even for gray mode: the bilateral pass is
+// luma-guided regardless, and grayscale conversion happens only at the
+// final quantization stage.
+function createSquintCanvasFromCanvas(originalCanvas, options = {}) {
+  const { softness = 35, mode = "gray" } = options;
+  const settings = getSquintPipelineSettings(softness);
 
-  const blurredCanvas = createSquintSmoothedCanvas(originalCanvas, radiusPercent);
+  const workingWidth = Math.max(2, Math.round(originalCanvas.width * settings.workingWidthRatio));
+  const workingHeight = Math.max(2, Math.round(originalCanvas.height * settings.workingWidthRatio));
 
-  const outputCanvas = createOffscreenCanvas(originalCanvas.width, originalCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
-  outputCtx.drawImage(blurredCanvas, 0, 0);
+  let workingCanvas = areaAverageDownscale(originalCanvas, workingWidth, workingHeight);
 
-  const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-  const { data } = imageData;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const hsl = rgbToHsl(data[i], data[i + 1], data[i + 2]);
-    const mutedSaturation = hsl.saturation * 0.7;
-    const steppedLightnessStep = Math.round((hsl.lightness / 100) * maxStepIndex);
-    const steppedLightness = (steppedLightnessStep / maxStepIndex) * 100;
-    const rgb = hslToRgb(hsl.hue, mutedSaturation, steppedLightness);
-
-    data[i] = rgb.r;
-    data[i + 1] = rgb.g;
-    data[i + 2] = rgb.b;
-    data[i + 3] = 255;
+  for (let pass = 0; pass < settings.bilateralIterations; pass += 1) {
+    workingCanvas = bilateralPass5x5(workingCanvas, settings.rangeSigma);
   }
 
-  outputCtx.putImageData(imageData, 0, 0);
+  const quantizedCanvas = applySquintValueQuantization(workingCanvas, {
+    levels: settings.valueLevels,
+    bandSoftness: settings.bandSoftness,
+    mode
+  });
 
-  return outputCanvas;
+  return bilinearUpscale(quantizedCanvas, originalCanvas.width, originalCanvas.height);
 }

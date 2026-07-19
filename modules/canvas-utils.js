@@ -108,82 +108,35 @@ function createStrongBlurCanvas(sourceCanvas, radiusPercent) {
   return outputCanvas;
 }
 
-// Edge-preserving smoothing (Kuwahara-style): for each pixel, computes the
-// mean and variance of 4 overlapping neighbourhood quadrants and outputs the
-// mean of whichever quadrant is most uniform. Flat or textured regions get
-// smoothed fully, but a quadrant straddling a strong value boundary has high
-// variance and gets rejected, so the boundary itself stays legible instead
-// of melting like a plain blur. Uses summed-area tables so the cost per
-// pixel is O(1) regardless of window size.
-//
-// Runs on a half-resolution copy for speed (a step later posterises the
-// result anyway, so the extra half-pixel of upscale softening at region
-// boundaries is not visible) and upscales the result back to full size.
-function createKuwaharaCanvas(sourceCanvas, radiusPercent) {
-  const downscaleFactor = sourceCanvas.width > 400 ? 2 : 1;
-
-  if (downscaleFactor === 1) {
-    return computeKuwaharaSmoothing(sourceCanvas, radiusPercent);
-  }
-
-  const scaledCanvas = createOffscreenCanvas(
-    Math.max(2, Math.round(sourceCanvas.width / downscaleFactor)),
-    Math.max(2, Math.round(sourceCanvas.height / downscaleFactor))
-  );
-  const scaledCtx = scaledCanvas.getContext("2d");
-  scaledCtx.imageSmoothingEnabled = true;
-  scaledCtx.imageSmoothingQuality = "high";
-  scaledCtx.drawImage(sourceCanvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
-
-  const smoothedCanvas = computeKuwaharaSmoothing(scaledCanvas, radiusPercent);
-
-  const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d");
-  outputCtx.imageSmoothingEnabled = true;
-  outputCtx.imageSmoothingQuality = "high";
-  outputCtx.drawImage(smoothedCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height);
-
-  return outputCanvas;
-}
-
-function computeKuwaharaSmoothing(sourceCanvas, radiusPercent) {
-  const width = sourceCanvas.width;
-  const height = sourceCanvas.height;
-  const diagonal = Math.sqrt((width * width) + (height * height));
-  const windowRadius = Math.max(1, Math.round((diagonal * Math.max(0, radiusPercent)) / 100));
-
+// Deterministic area-average downscale: every destination pixel is the mean
+// of the exact (non-overlapping) rectangle of source pixels it covers, via a
+// summed-area table. Used instead of `drawImage` scaling, whose bilinear
+// interpolation is implementation-defined and not guaranteed bit-identical
+// across browser engines (see docs/squint-algorithm-recommendation.md §3).
+function areaAverageDownscale(sourceCanvas, targetWidth, targetHeight) {
+  const sourceWidth = sourceCanvas.width;
+  const sourceHeight = sourceCanvas.height;
   const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
-  const src = sourceCtx.getImageData(0, 0, width, height).data;
+  const src = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight).data;
 
-  const sizeX = width + 1;
-  const satLength = sizeX * (height + 1);
+  const sizeX = sourceWidth + 1;
+  const satLength = sizeX * (sourceHeight + 1);
   const sumR = new Float64Array(satLength);
   const sumG = new Float64Array(satLength);
   const sumB = new Float64Array(satLength);
-  const sumLuma = new Float64Array(satLength);
-  const sumLumaSq = new Float64Array(satLength);
 
-  for (let y = 0; y < height; y += 1) {
+  for (let y = 0; y < sourceHeight; y += 1) {
     let rowR = 0;
     let rowG = 0;
     let rowB = 0;
-    let rowLuma = 0;
-    let rowLumaSq = 0;
     const aboveRowBase = y * sizeX;
     const currentRowBase = aboveRowBase + sizeX;
 
-    for (let x = 0; x < width; x += 1) {
-      const pixelIndex = ((y * width) + x) * 4;
-      const r = src[pixelIndex];
-      const g = src[pixelIndex + 1];
-      const b = src[pixelIndex + 2];
-      const luma = (0.299 * r) + (0.587 * g) + (0.114 * b);
-
-      rowR += r;
-      rowG += g;
-      rowB += b;
-      rowLuma += luma;
-      rowLumaSq += luma * luma;
+    for (let x = 0; x < sourceWidth; x += 1) {
+      const pixelIndex = ((y * sourceWidth) + x) * 4;
+      rowR += src[pixelIndex];
+      rowG += src[pixelIndex + 1];
+      rowB += src[pixelIndex + 2];
 
       const aboveIndex = aboveRowBase + x + 1;
       const currentIndex = currentRowBase + x + 1;
@@ -191,9 +144,158 @@ function computeKuwaharaSmoothing(sourceCanvas, radiusPercent) {
       sumR[currentIndex] = sumR[aboveIndex] + rowR;
       sumG[currentIndex] = sumG[aboveIndex] + rowG;
       sumB[currentIndex] = sumB[aboveIndex] + rowB;
-      sumLuma[currentIndex] = sumLuma[aboveIndex] + rowLuma;
-      sumLumaSq[currentIndex] = sumLumaSq[aboveIndex] + rowLumaSq;
     }
+  }
+
+  const safeTargetWidth = Math.max(1, Math.round(targetWidth));
+  const safeTargetHeight = Math.max(1, Math.round(targetHeight));
+  const outputCanvas = createOffscreenCanvas(safeTargetWidth, safeTargetHeight);
+  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+  const outputImageData = outputCtx.createImageData(safeTargetWidth, safeTargetHeight);
+  const out = outputImageData.data;
+
+  for (let ty = 0; ty < safeTargetHeight; ty += 1) {
+    const y0 = Math.floor((ty * sourceHeight) / safeTargetHeight);
+    const y1 = Math.max(y0 + 1, Math.floor(((ty + 1) * sourceHeight) / safeTargetHeight));
+    const rowTopBase = y0 * sizeX;
+    const rowBottomBase = y1 * sizeX;
+
+    for (let tx = 0; tx < safeTargetWidth; tx += 1) {
+      const x0 = Math.floor((tx * sourceWidth) / safeTargetWidth);
+      const x1 = Math.max(x0 + 1, Math.floor(((tx + 1) * sourceWidth) / safeTargetWidth));
+      const count = (x1 - x0) * (y1 - y0);
+
+      const r = (sumR[rowBottomBase + x1] - sumR[rowBottomBase + x0] - sumR[rowTopBase + x1] + sumR[rowTopBase + x0]) / count;
+      const g = (sumG[rowBottomBase + x1] - sumG[rowBottomBase + x0] - sumG[rowTopBase + x1] + sumG[rowTopBase + x0]) / count;
+      const b = (sumB[rowBottomBase + x1] - sumB[rowBottomBase + x0] - sumB[rowTopBase + x1] + sumB[rowTopBase + x0]) / count;
+
+      const index = ((ty * safeTargetWidth) + tx) * 4;
+      out[index] = Math.round(r);
+      out[index + 1] = Math.round(g);
+      out[index + 2] = Math.round(b);
+      out[index + 3] = 255;
+    }
+  }
+
+  outputCtx.putImageData(outputImageData, 0, 0);
+  return outputCanvas;
+}
+
+// Deterministic bilinear upscale: hand-rolled instead of `drawImage` scaling
+// for the same cross-browser-determinism reason as areaAverageDownscale.
+function bilinearUpscale(sourceCanvas, targetWidth, targetHeight) {
+  const sourceWidth = sourceCanvas.width;
+  const sourceHeight = sourceCanvas.height;
+  const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
+  const src = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight).data;
+
+  const safeTargetWidth = Math.max(1, Math.round(targetWidth));
+  const safeTargetHeight = Math.max(1, Math.round(targetHeight));
+  const outputCanvas = createOffscreenCanvas(safeTargetWidth, safeTargetHeight);
+  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+  const outputImageData = outputCtx.createImageData(safeTargetWidth, safeTargetHeight);
+  const out = outputImageData.data;
+
+  const scaleX = sourceWidth / safeTargetWidth;
+  const scaleY = sourceHeight / safeTargetHeight;
+
+  for (let ty = 0; ty < safeTargetHeight; ty += 1) {
+    const sy = ((ty + 0.5) * scaleY) - 0.5;
+    const y0 = Math.max(0, Math.min(sourceHeight - 1, Math.floor(sy)));
+    const y1 = Math.min(sourceHeight - 1, y0 + 1);
+    const fy = Math.max(0, Math.min(1, sy - y0));
+
+    for (let tx = 0; tx < safeTargetWidth; tx += 1) {
+      const sx = ((tx + 0.5) * scaleX) - 0.5;
+      const x0 = Math.max(0, Math.min(sourceWidth - 1, Math.floor(sx)));
+      const x1 = Math.min(sourceWidth - 1, x0 + 1);
+      const fx = Math.max(0, Math.min(1, sx - x0));
+
+      const i00 = ((y0 * sourceWidth) + x0) * 4;
+      const i10 = ((y0 * sourceWidth) + x1) * 4;
+      const i01 = ((y1 * sourceWidth) + x0) * 4;
+      const i11 = ((y1 * sourceWidth) + x1) * 4;
+
+      const w00 = (1 - fx) * (1 - fy);
+      const w10 = fx * (1 - fy);
+      const w01 = (1 - fx) * fy;
+      const w11 = fx * fy;
+
+      const outIndex = ((ty * safeTargetWidth) + tx) * 4;
+
+      out[outIndex] = Math.round(
+        (src[i00] * w00) + (src[i10] * w10) + (src[i01] * w01) + (src[i11] * w11)
+      );
+      out[outIndex + 1] = Math.round(
+        (src[i00 + 1] * w00) + (src[i10 + 1] * w10) + (src[i01 + 1] * w01) + (src[i11 + 1] * w11)
+      );
+      out[outIndex + 2] = Math.round(
+        (src[i00 + 2] * w00) + (src[i10 + 2] * w10) + (src[i01 + 2] * w01) + (src[i11 + 2] * w11)
+      );
+      out[outIndex + 3] = 255;
+    }
+  }
+
+  outputCtx.putImageData(outputImageData, 0, 0);
+  return outputCanvas;
+}
+
+const BILATERAL_RADIUS = 2;
+const BILATERAL_SPATIAL_SIGMA = 1.4;
+
+// Fixed 5x5 spatial weights, precomputed once at load. Math.exp's last-bit
+// result can differ across JS engines, but rounding into a fixed-precision
+// integer table (multiply by 4096, floor) quantizes away any such
+// difference, keeping the filter bit-identical across browsers.
+const BILATERAL_SPATIAL_WEIGHTS = (() => {
+  const size = (BILATERAL_RADIUS * 2) + 1;
+  const weights = new Array(size * size);
+  const twoSigmaSq = 2 * BILATERAL_SPATIAL_SIGMA * BILATERAL_SPATIAL_SIGMA;
+
+  for (let dy = -BILATERAL_RADIUS; dy <= BILATERAL_RADIUS; dy += 1) {
+    for (let dx = -BILATERAL_RADIUS; dx <= BILATERAL_RADIUS; dx += 1) {
+      const distanceSq = (dx * dx) + (dy * dy);
+      weights[((dy + BILATERAL_RADIUS) * size) + (dx + BILATERAL_RADIUS)] =
+        Math.floor(4096 * Math.exp(-distanceSq / twoSigmaSq));
+    }
+  }
+
+  return weights;
+})();
+
+function buildBilateralRangeLut(rangeSigma) {
+  const lut = new Int32Array(256);
+  const twoSigmaSq = 2 * rangeSigma * rangeSigma;
+
+  for (let d = 0; d < 256; d += 1) {
+    lut[d] = Math.floor(4096 * Math.exp(-(d * d) / twoSigmaSq));
+  }
+
+  return lut;
+}
+
+// Luma-guided 5x5 bilateral filter: a weighted average of neighbouring
+// pixels, weighted by both spatial distance and luma similarity. Unlike
+// Kuwahara's hard "pick one quadrant" decision, every output is a smooth
+// blend, so there is no discrete choice to destabilize on noise, and on a
+// smooth gradient it degrades gracefully to a plain local mean instead of
+// terracing. Iterate this 2-3 times to progressively flatten texture while
+// real edges stay crisp (averaging never crosses them).
+function bilateralPass5x5(sourceCanvas, rangeSigma) {
+  const width = sourceCanvas.width;
+  const height = sourceCanvas.height;
+  const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
+  const src = sourceCtx.getImageData(0, 0, width, height).data;
+
+  const radius = BILATERAL_RADIUS;
+  const size = (radius * 2) + 1;
+  const rangeLut = buildBilateralRangeLut(rangeSigma);
+
+  const luma = new Uint8ClampedArray(width * height);
+  for (let pixelIndex = 0, lumaIndex = 0; lumaIndex < luma.length; pixelIndex += 4, lumaIndex += 1) {
+    luma[lumaIndex] = Math.round(
+      (0.299 * src[pixelIndex]) + (0.587 * src[pixelIndex + 1]) + (0.114 * src[pixelIndex + 2])
+    );
   }
 
   const outputCanvas = createOffscreenCanvas(width, height);
@@ -201,92 +303,41 @@ function computeKuwaharaSmoothing(sourceCanvas, radiusPercent) {
   const outputImageData = outputCtx.createImageData(width, height);
   const out = outputImageData.data;
 
-  // Quadrant box-sum terms are inlined (no per-call helper functions) so V8
-  // can keep this loop in optimized code; at 1600x1200 that difference is
-  // the gap between an interactive slider and a multi-second stall.
   for (let y = 0; y < height; y += 1) {
-    const yTop = y - windowRadius < 0 ? 0 : y - windowRadius;
-    const yBottom = y + windowRadius >= height ? height - 1 : y + windowRadius;
-    const rowTopBase = yTop * sizeX;
-    const rowYBase = (y + 1) * sizeX;
-    const rowBottomBase = (yBottom + 1) * sizeX;
-
     for (let x = 0; x < width; x += 1) {
-      const xLeft = x - windowRadius < 0 ? 0 : x - windowRadius;
-      const xRight = x + windowRadius >= width ? width - 1 : x + windowRadius;
+      const centerLuma = luma[(y * width) + x];
+      let weightSum = 0;
+      let rSum = 0;
+      let gSum = 0;
+      let bSum = 0;
 
-      // Top-left: rows [yTop, y], cols [xLeft, x]
-      const tlCount = (x - xLeft + 1) * (y - yTop + 1);
-      const tlLumaSum = sumLuma[rowYBase + x + 1] - sumLuma[rowYBase + xLeft] - sumLuma[rowTopBase + x + 1] + sumLuma[rowTopBase + xLeft];
-      const tlLumaSqSum = sumLumaSq[rowYBase + x + 1] - sumLumaSq[rowYBase + xLeft] - sumLumaSq[rowTopBase + x + 1] + sumLumaSq[rowTopBase + xLeft];
-      const tlMean = tlLumaSum / tlCount;
-      const tlVariance = (tlLumaSqSum / tlCount) - (tlMean * tlMean);
+      for (let dy = -radius; dy <= radius; dy += 1) {
+        const ny = y + dy < 0 ? 0 : (y + dy >= height ? height - 1 : y + dy);
+        const rowWeightBase = (dy + radius) * size;
 
-      // Top-right: rows [yTop, y], cols [x, xRight]
-      const trCount = (xRight - x + 1) * (y - yTop + 1);
-      const trLumaSum = sumLuma[rowYBase + xRight + 1] - sumLuma[rowYBase + x] - sumLuma[rowTopBase + xRight + 1] + sumLuma[rowTopBase + x];
-      const trLumaSqSum = sumLumaSq[rowYBase + xRight + 1] - sumLumaSq[rowYBase + x] - sumLumaSq[rowTopBase + xRight + 1] + sumLumaSq[rowTopBase + x];
-      const trMean = trLumaSum / trCount;
-      const trVariance = (trLumaSqSum / trCount) - (trMean * trMean);
+        for (let dx = -radius; dx <= radius; dx += 1) {
+          const nx = x + dx < 0 ? 0 : (x + dx >= width ? width - 1 : x + dx);
+          const neighborIndex = (ny * width) + nx;
+          const neighborLuma = luma[neighborIndex];
+          const lumaDiff = neighborLuma > centerLuma
+            ? neighborLuma - centerLuma
+            : centerLuma - neighborLuma;
 
-      // Bottom-left: rows [y, yBottom], cols [xLeft, x]
-      const blCount = (x - xLeft + 1) * (yBottom - y + 1);
-      const blLumaSum = sumLuma[rowBottomBase + x + 1] - sumLuma[rowBottomBase + xLeft] - sumLuma[rowYBase + x + 1] + sumLuma[rowYBase + xLeft];
-      const blLumaSqSum = sumLumaSq[rowBottomBase + x + 1] - sumLumaSq[rowBottomBase + xLeft] - sumLumaSq[rowYBase + x + 1] + sumLumaSq[rowYBase + xLeft];
-      const blMean = blLumaSum / blCount;
-      const blVariance = (blLumaSqSum / blCount) - (blMean * blMean);
+          const weight = BILATERAL_SPATIAL_WEIGHTS[rowWeightBase + dx + radius] * rangeLut[lumaDiff];
+          const pixelIndex = neighborIndex * 4;
 
-      // Bottom-right: rows [y, yBottom], cols [x, xRight]
-      const brCount = (xRight - x + 1) * (yBottom - y + 1);
-      const brLumaSum = sumLuma[rowBottomBase + xRight + 1] - sumLuma[rowBottomBase + x] - sumLuma[rowYBase + xRight + 1] + sumLuma[rowYBase + x];
-      const brLumaSqSum = sumLumaSq[rowBottomBase + xRight + 1] - sumLumaSq[rowBottomBase + x] - sumLumaSq[rowYBase + xRight + 1] + sumLumaSq[rowYBase + x];
-      const brMean = brLumaSum / brCount;
-      const brVariance = (brLumaSqSum / brCount) - (brMean * brMean);
-
-      let bestCount = tlCount;
-      let bestVariance = tlVariance;
-      let bestX0 = xLeft;
-      let bestX1 = x;
-      let bestY0 = yTop;
-      let bestY1 = y;
-
-      if (trVariance < bestVariance) {
-        bestVariance = trVariance;
-        bestCount = trCount;
-        bestX0 = x;
-        bestX1 = xRight;
-        bestY0 = yTop;
-        bestY1 = y;
+          weightSum += weight;
+          rSum += weight * src[pixelIndex];
+          gSum += weight * src[pixelIndex + 1];
+          bSum += weight * src[pixelIndex + 2];
+        }
       }
 
-      if (blVariance < bestVariance) {
-        bestVariance = blVariance;
-        bestCount = blCount;
-        bestX0 = xLeft;
-        bestX1 = x;
-        bestY0 = y;
-        bestY1 = yBottom;
-      }
-
-      if (brVariance < bestVariance) {
-        bestCount = brCount;
-        bestX0 = x;
-        bestX1 = xRight;
-        bestY0 = y;
-        bestY1 = yBottom;
-      }
-
-      const rowBestTop = bestY0 * sizeX;
-      const rowBestBottom = (bestY1 + 1) * sizeX;
-      const bestR = (sumR[rowBestBottom + bestX1 + 1] - sumR[rowBestBottom + bestX0] - sumR[rowBestTop + bestX1 + 1] + sumR[rowBestTop + bestX0]) / bestCount;
-      const bestG = (sumG[rowBestBottom + bestX1 + 1] - sumG[rowBestBottom + bestX0] - sumG[rowBestTop + bestX1 + 1] + sumG[rowBestTop + bestX0]) / bestCount;
-      const bestB = (sumB[rowBestBottom + bestX1 + 1] - sumB[rowBestBottom + bestX0] - sumB[rowBestTop + bestX1 + 1] + sumB[rowBestTop + bestX0]) / bestCount;
-
-      const index = ((y * width) + x) * 4;
-      out[index] = Math.round(bestR);
-      out[index + 1] = Math.round(bestG);
-      out[index + 2] = Math.round(bestB);
-      out[index + 3] = 255;
+      const outIndex = ((y * width) + x) * 4;
+      out[outIndex] = Math.round(rSum / weightSum);
+      out[outIndex + 1] = Math.round(gSum / weightSum);
+      out[outIndex + 2] = Math.round(bSum / weightSum);
+      out[outIndex + 3] = 255;
     }
   }
 
