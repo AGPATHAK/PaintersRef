@@ -419,14 +419,16 @@ function createMirroredCanvasFromCanvas(sourceCanvas) {
   return outputCanvas;
 }
 
-// Softness 0-100 maps to blur radius 0.5%-4.0% of the image diagonal, shared
+// Softness 0-100 maps to blur radius 0.5%-1.5% of the image diagonal, shared
 // by grayscale and colour squint so both read as the same "half-closed eyes" strength.
+// Kept small: past ~1.5% of diagonal, real reference photos are already
+// fully merged, so a bigger ceiling just wastes the top of the slider.
 function getSquintBlurSettings(softness) {
   const clampedSoftness = clamp(softness, 0, 100);
   const normalized = clampedSoftness / 100;
 
   return {
-    radiusPercent: 0.5 + (normalized * 3.5),
+    radiusPercent: 0.5 + normalized,
     valueLevels: clamp(Math.round(12 - (normalized * 8)), 4, 12)
   };
 }
