@@ -119,10 +119,7 @@ function createBlurredGrayscaleCanvas(sourceCanvas, blurPasses) {
   return currentCanvas;
 }
 
-function createOutlineSketchCanvasFromGrayscaleCanvas(grayscaleCanvas, outlineOptions) {
-  const settings = getOutlineRenderSettings(outlineOptions);
-  const blurredCanvas = createBlurredGrayscaleCanvas(grayscaleCanvas, settings.blurPasses);
-
+function createSobelEdgeCanvas(blurredCanvas, threshold) {
   const width = blurredCanvas.width;
   const height = blurredCanvas.height;
 
@@ -168,7 +165,7 @@ function createOutlineSketchCanvasFromGrayscaleCanvas(grayscaleCanvas, outlineOp
       }
 
       const magnitude = Math.sqrt((gx * gx) + (gy * gy));
-      const isEdge = magnitude >= settings.threshold;
+      const isEdge = magnitude >= threshold;
       const outputValue = isEdge ? 0 : 255;
       const index = (y * width + x) * 4;
 
@@ -181,6 +178,123 @@ function createOutlineSketchCanvasFromGrayscaleCanvas(grayscaleCanvas, outlineOp
 
   outputCtx.putImageData(outputImageData, 0, 0);
   return outputCanvas;
+}
+
+// "Simple" outline reads as closed mass-boundary shapes rather than texture
+// edges: quantise the blurred grayscale to a few value regions and mark the
+// boundaries between them, instead of raw Sobel gradient edges.
+function createPosterizedRegionEdgeCanvas(blurredCanvas, levels) {
+  const width = blurredCanvas.width;
+  const height = blurredCanvas.height;
+
+  const sourceCtx = blurredCanvas.getContext("2d", { willReadFrequently: true });
+  const src = sourceCtx.getImageData(0, 0, width, height).data;
+
+  const outputCanvas = createOffscreenCanvas(width, height);
+  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+  const outputImageData = outputCtx.createImageData(width, height);
+  const out = outputImageData.data;
+
+  const maxLevelIndex = levels - 1;
+  const getLevelAt = (x, y) => {
+    const clampedX = Math.max(0, Math.min(width - 1, x));
+    const clampedY = Math.max(0, Math.min(height - 1, y));
+    const index = (clampedY * width + clampedX) * 4;
+    return Math.round((src[index] / 255) * maxLevelIndex);
+  };
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const currentLevel = getLevelAt(x, y);
+      const rightLevel = getLevelAt(x + 1, y);
+      const lowerLevel = getLevelAt(x, y + 1);
+      const isEdge = currentLevel !== rightLevel || currentLevel !== lowerLevel;
+      const outputValue = isEdge ? 0 : 255;
+      const index = (y * width + x) * 4;
+
+      out[index] = outputValue;
+      out[index + 1] = outputValue;
+      out[index + 2] = outputValue;
+      out[index + 3] = 255;
+    }
+  }
+
+  outputCtx.putImageData(outputImageData, 0, 0);
+  return outputCanvas;
+}
+
+// Drops isolated edge pixels (fewer than 2 edge neighbours in the
+// 8-neighbourhood) so outlines read as continuous shapes instead of pepper
+// noise. Run twice: the second pass cleans up pairs exposed by the first.
+function despeckleEdgeCanvas(edgeCanvas, passes = 2) {
+  let currentCanvas = edgeCanvas;
+
+  for (let pass = 0; pass < passes; pass += 1) {
+    const width = currentCanvas.width;
+    const height = currentCanvas.height;
+
+    const sourceCtx = currentCanvas.getContext("2d", { willReadFrequently: true });
+    const src = sourceCtx.getImageData(0, 0, width, height).data;
+
+    const outputCanvas = createOffscreenCanvas(width, height);
+    const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+    const outputImageData = outputCtx.createImageData(width, height);
+    const out = outputImageData.data;
+
+    const isEdgeAt = (x, y) => {
+      if (x < 0 || y < 0 || x >= width || y >= height) {
+        return false;
+      }
+
+      return src[(y * width + x) * 4] === 0;
+    };
+
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const index = (y * width + x) * 4;
+        let outputValue = 255;
+
+        if (src[index] === 0) {
+          let neighborCount = 0;
+
+          for (let ky = -1; ky <= 1; ky += 1) {
+            for (let kx = -1; kx <= 1; kx += 1) {
+              if (kx === 0 && ky === 0) {
+                continue;
+              }
+
+              if (isEdgeAt(x + kx, y + ky)) {
+                neighborCount += 1;
+              }
+            }
+          }
+
+          outputValue = neighborCount >= 2 ? 0 : 255;
+        }
+
+        out[index] = outputValue;
+        out[index + 1] = outputValue;
+        out[index + 2] = outputValue;
+        out[index + 3] = 255;
+      }
+    }
+
+    outputCtx.putImageData(outputImageData, 0, 0);
+    currentCanvas = outputCanvas;
+  }
+
+  return currentCanvas;
+}
+
+function createOutlineSketchCanvasFromGrayscaleCanvas(grayscaleCanvas, outlineOptions) {
+  const settings = getOutlineRenderSettings(outlineOptions);
+  const blurredCanvas = createBlurredGrayscaleCanvas(grayscaleCanvas, settings.blurPasses);
+
+  const edgeCanvas = outlineOptions.detail === "low"
+    ? createPosterizedRegionEdgeCanvas(blurredCanvas, 3)
+    : createSobelEdgeCanvas(blurredCanvas, settings.threshold);
+
+  return despeckleEdgeCanvas(edgeCanvas);
 }
 
 function getValueContourDetailSettings(detailLevel) {
