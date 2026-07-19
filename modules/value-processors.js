@@ -26,6 +26,45 @@ function createGrayscaleCanvasFromCanvas(sourceCanvas) {
   return outputCanvas;
 }
 
+// Per-image notan cutoffs from the 33rd/66th percentile of the value
+// histogram, so a low-key or high-key reference does not collapse to a
+// nearly all-black or all-white 3-value split.
+function computeAdaptiveNotanCutoffs(grayscaleCanvas) {
+  const ctx = grayscaleCanvas.getContext("2d", { willReadFrequently: true });
+  const { data } = ctx.getImageData(0, 0, grayscaleCanvas.width, grayscaleCanvas.height);
+
+  const histogram = new Array(256).fill(0);
+  let totalPixels = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    histogram[data[i]] += 1;
+    totalPixels += 1;
+  }
+
+  const percentileValue = (percentile) => {
+    const target = totalPixels * percentile;
+    let cumulative = 0;
+
+    for (let value = 0; value < 256; value += 1) {
+      cumulative += histogram[value];
+      if (cumulative >= target) {
+        return value;
+      }
+    }
+
+    return 255;
+  };
+
+  const shadowCutoff = clamp(percentileValue(0.33), 40, 140);
+  let lightCutoff = clamp(percentileValue(0.66), 130, 220);
+
+  if (lightCutoff - shadowCutoff < 10) {
+    lightCutoff = Math.min(220, shadowCutoff + 10);
+  }
+
+  return { shadowCutoff, lightCutoff };
+}
+
 function createNotanCanvasFromGrayscaleCanvas(grayscaleCanvas, options = {}) {
   const {
     shadowCutoff = 85,

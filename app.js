@@ -570,6 +570,8 @@ class PaintersReferenceApp {
       notan: {
         shadowCutoff: 85,
         lightCutoff: 170,
+        autoShadowCutoff: 85,
+        autoLightCutoff: 170,
         minimumGap: 10
       },
       temperature: {
@@ -979,8 +981,8 @@ class PaintersReferenceApp {
     }
 
     this.dom.resetNotanButton.addEventListener("click", () => {
-      this.state.notan.shadowCutoff = 85;
-      this.state.notan.lightCutoff = 170;
+      this.state.notan.shadowCutoff = this.state.notan.autoShadowCutoff;
+      this.state.notan.lightCutoff = this.state.notan.autoLightCutoff;
       this.refreshNotanCanvas();
       this.updateNotanControls();
       this.renderScene();
@@ -1513,10 +1515,18 @@ class PaintersReferenceApp {
 
     const originalCanvas = cloneCanvas(sourceCanvas);
     const grayscaleCanvas = createGrayscaleCanvasFromCanvas(originalCanvas);
-    const notanCanvas = createNotanCanvasFromGrayscaleCanvas(grayscaleCanvas, {
+
+    const adaptiveCutoffs = computeAdaptiveNotanCutoffs(grayscaleCanvas);
+    this.state.notan.autoShadowCutoff = adaptiveCutoffs.shadowCutoff;
+    this.state.notan.autoLightCutoff = adaptiveCutoffs.lightCutoff;
+    this.state.notan.shadowCutoff = adaptiveCutoffs.shadowCutoff;
+    this.state.notan.lightCutoff = adaptiveCutoffs.lightCutoff;
+
+    const notanCutoffs = {
       shadowCutoff: this.state.notan.shadowCutoff,
       lightCutoff: this.state.notan.lightCutoff
-    });
+    };
+    const notanCanvas = createNotanCanvasFromGrayscaleCanvas(grayscaleCanvas, notanCutoffs);
 
     const lightMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "light");
     const midtoneMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "midtone");
@@ -1586,6 +1596,8 @@ class PaintersReferenceApp {
     this.state.workingScale = referenceCanvas && this.state.originalWidth > 0
       ? referenceCanvas.width / this.state.originalWidth
       : 1;
+
+    this.updateNotanControls();
   }
 
   // Composition selection feeds later stages by rebuilding every derived canvas.
