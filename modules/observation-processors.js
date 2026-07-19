@@ -433,11 +433,30 @@ function getSquintBlurSettings(softness) {
   };
 }
 
+// A plain Kuwahara filter is unstable on real photographic texture (dappled
+// foliage, grass): neighbouring pixels can pick different "most uniform"
+// quadrants from noise alone, producing a blotchy, speckled look instead of
+// smooth masses. A light pre-blur removes that fine noise so the quadrant
+// choice is stable, while strong value edges (sky/tree boundary) survive
+// the pre-blur and still get preserved by the Kuwahara pass on top.
+//
+// The pre-blur amount is fixed, not scaled with the requested squint
+// radius: real photo noise/texture sits at roughly the same fine spatial
+// scale regardless of how strong a squint the painter asked for, so even a
+// gentle (low-softness) Kuwahara radius needs this same cleanup pass to
+// avoid the blotchy look.
+const SQUINT_PRE_BLUR_PERCENT = 1.75;
+
+function createSquintSmoothedCanvas(sourceCanvas, radiusPercent) {
+  const preBlurredCanvas = createStrongBlurCanvas(sourceCanvas, SQUINT_PRE_BLUR_PERCENT);
+  return createKuwaharaCanvas(preBlurredCanvas, radiusPercent);
+}
+
 function createSquintCanvasFromGrayscaleCanvas(sourceCanvas, options = {}) {
   const { softness = 35 } = options;
   const { radiusPercent, valueLevels } = getSquintBlurSettings(softness);
 
-  const blurredCanvas = createKuwaharaCanvas(sourceCanvas, radiusPercent);
+  const blurredCanvas = createSquintSmoothedCanvas(sourceCanvas, radiusPercent);
 
   const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
   const outputCtx = outputCanvas.getContext("2d");
@@ -471,7 +490,7 @@ function createColorSquintCanvasFromCanvas(originalCanvas, options = {}) {
   const { radiusPercent, valueLevels } = getSquintBlurSettings(softness);
   const maxStepIndex = valueLevels - 1;
 
-  const blurredCanvas = createKuwaharaCanvas(originalCanvas, radiusPercent);
+  const blurredCanvas = createSquintSmoothedCanvas(originalCanvas, radiusPercent);
 
   const outputCanvas = createOffscreenCanvas(originalCanvas.width, originalCanvas.height);
   const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
