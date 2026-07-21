@@ -408,6 +408,21 @@ the dominant element.
   plan's scope amended the earlier freeze.
 - Add a short entry to `docs/next-session-brief.md` with anything deferred.
 
+**Done early (2026-07-21), out of sequence, ahead of Phase 3.** The owner
+paused active development to test V3.0 across real references and share it
+before deciding on next steps, and asked whether the docs were in order to
+resume later. They weren't: `README.md` and `docs/current-state-audit.md`
+still said "V2 build 30" and listed the since-removed Light/Midtone/Shadow
+Mask as separate views, and this very roadmap doc plus the two Squint
+research docs had never actually been committed to git (only ever sitting
+in the working directory). Fixed all of it: committed the three docs,
+refreshed `README.md`/`current-state-audit.md`/`next-session-brief.md` to
+describe what's actually shipped (this addendum's own history), and reset
+the version label to "V3.0 build 1" (separate commit, before this docs
+pass). Phase 3 (hold-to-compare, tablet pass) remains genuinely not
+started - do not begin it unsolicited; wait for the owner's real-use
+feedback.
+
 ---
 
 ## 7. Phase 5 — Verification Checklist (run after every phase)
