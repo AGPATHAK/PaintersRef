@@ -1,15 +1,15 @@
-const CACHE_NAME = "painters-reference-lab-v33";
+const CACHE_NAME = "painters-reference-lab-v34";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=33",
-  "./app.js?v=33",
-  "./modules/canvas-utils.js?v=33",
-  "./modules/value-processors.js?v=33",
-  "./modules/mask-processors.js?v=33",
-  "./modules/palette-processors.js?v=33",
-  "./modules/observation-processors.js?v=33",
-  "./modules/color-study-processors.js?v=33",
+  "./styles.css?v=34",
+  "./app.js?v=34",
+  "./modules/canvas-utils.js?v=34",
+  "./modules/value-processors.js?v=34",
+  "./modules/mask-processors.js?v=34",
+  "./modules/palette-processors.js?v=34",
+  "./modules/observation-processors.js?v=34",
+  "./modules/color-study-processors.js?v=34",
   "./manifest.webmanifest",
   "./icons/icon.svg"
 ];
