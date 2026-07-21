@@ -558,6 +558,9 @@ class PaintersReferenceApp {
       notanControlsSection: document.getElementById("notanControlsSection"),
       valueGroupsControlsSection: document.getElementById("valueGroupsControlsSection"),
       valueGroupsButtons: Array.from(document.querySelectorAll("[data-value-groups-count]")),
+      massStudyControlsSection: document.getElementById("massStudyControlsSection"),
+      massStudyPresetLabel: document.getElementById("massStudyPresetLabel"),
+      massStudyPresetButtons: Array.from(document.querySelectorAll("[data-mass-study-detail]")),
       temperatureControlsSection: document.getElementById("temperatureControlsSection"),
       temperatureNeutralThresholdInput: document.getElementById("temperatureNeutralThresholdInput"),
       temperatureNeutralThresholdValue: document.getElementById("temperatureNeutralThresholdValue"),
@@ -634,6 +637,9 @@ class PaintersReferenceApp {
       valueGroups: {
         count: 4
       },
+      massStudy: {
+        detail: "medium"
+      },
       stageSelections: {
         baseline: "original",
         composition: "focalStudy",
@@ -682,6 +688,7 @@ class PaintersReferenceApp {
         coolMaskCanvas: null,
         neutralMaskCanvas: null,
         colorStudyCanvas: null,
+        massStudyCanvas: null,
         valueContourCanvas: null,
         outlineSketchCanvas: null,
         squintCanvas: null,
@@ -775,6 +782,7 @@ class PaintersReferenceApp {
       lightMask: "painting",
       midtoneMask: "painting",
       shadowMask: "painting",
+      massStudy: "painting",
       temperatureStudy: "painting",
       colorStudy: "painting",
       paletteStudy: "painting"
@@ -963,6 +971,21 @@ class PaintersReferenceApp {
       });
     });
 
+    this.dom.massStudyPresetButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const detail = button.dataset.massStudyDetail;
+        if (!detail) {
+          return;
+        }
+
+        this.state.massStudy.detail = detail;
+        this.refreshMassStudyCanvas();
+        this.updateMassStudyControls();
+        this.updateStagePanels();
+        this.renderScene();
+      });
+    });
+
     this.dom.focalRadiusInput.addEventListener("input", () => {
       this.state.focalStudy.cropPercent = this.getSafeInteger(
         this.dom.focalRadiusInput.value,
@@ -1113,6 +1136,7 @@ class PaintersReferenceApp {
     this.updateSquintControls();
     this.updateNotanControls();
     this.updateValueGroupsControls();
+    this.updateMassStudyControls();
     this.updateTemperatureControls();
     this.updateColorStudyControls();
     this.updateFocalStudyControls();
@@ -1148,6 +1172,7 @@ class PaintersReferenceApp {
       lightMask: "Light Mask",
       midtoneMask: "Midtone Mask",
       shadowMask: "Shadow Mask",
+      massStudy: "Mass Study",
       temperatureStudy: "Temperature Study",
       colorStudy: "Color Study",
       paletteStudy: "Palette Notes",
@@ -1222,6 +1247,7 @@ class PaintersReferenceApp {
       lightMask: "Light Mask",
       midtoneMask: "Midtone Mask",
       shadowMask: "Shadow Mask",
+      massStudy: "Mass Study",
       temperatureStudy: "Temperature Study",
       colorStudy: "Color Study",
       paletteStudy: "Palette Notes"
@@ -1256,6 +1282,10 @@ class PaintersReferenceApp {
     const isSquintActive =
       this.state.activeStage === "painting" && this.state.viewMode === "squint";
     this.dom.squintControlsSection.classList.toggle("is-hidden", !isSquintActive);
+
+    const isMassStudyActive =
+      this.state.activeStage === "painting" && this.state.viewMode === "massStudy";
+    this.dom.massStudyControlsSection.classList.toggle("is-hidden", !isMassStudyActive);
 
     const isTemperatureActive =
       this.state.activeStage === "painting" &&
@@ -1317,6 +1347,17 @@ class PaintersReferenceApp {
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
     this.updateRangeFills();
+  }
+
+  updateMassStudyControls() {
+    const detail = this.state.massStudy.detail || "medium";
+    this.dom.massStudyPresetLabel.textContent = getMassStudyDisplayLabel(detail);
+
+    this.dom.massStudyPresetButtons.forEach((button) => {
+      const isActive = button.dataset.massStudyDetail === detail;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
   }
 
   updateValueContourControls() {
@@ -1487,6 +1528,17 @@ class PaintersReferenceApp {
     this.state.processed.valueGroupsCanvas = createValueGroupsCanvasFromGrayscaleCanvas(
       this.state.processed.grayscaleCanvas,
       { count: this.state.valueGroups.count }
+    );
+  }
+
+  refreshMassStudyCanvas() {
+    if (!this.state.processed.originalCanvas) {
+      return;
+    }
+
+    this.state.processed.massStudyCanvas = createMassStudyCanvasFromCanvas(
+      this.state.processed.originalCanvas,
+      this.state.massStudy.detail
     );
   }
 
@@ -1711,6 +1763,10 @@ class PaintersReferenceApp {
       originalCanvas,
       this.state.colorStudy.preset
     );
+    const massStudyCanvas = createMassStudyCanvasFromCanvas(
+      originalCanvas,
+      this.state.massStudy.detail
+    );
     const valueContourCanvas = createValueContourCanvasFromGrayscaleCanvas(
       grayscaleCanvas,
       this.state.valueContour
@@ -1753,6 +1809,7 @@ class PaintersReferenceApp {
     this.state.processed.coolMaskCanvas = coolMaskCanvas;
     this.state.processed.neutralMaskCanvas = neutralMaskCanvas;
     this.state.processed.colorStudyCanvas = colorStudyCanvas;
+    this.state.processed.massStudyCanvas = massStudyCanvas;
     this.state.processed.valueContourCanvas = valueContourCanvas;
     this.state.processed.outlineSketchCanvas = outlineSketchCanvas;
     this.state.processed.squintCanvas = squintCanvas;
@@ -1915,6 +1972,7 @@ class PaintersReferenceApp {
       lightMask: this.state.processed.lightMaskCanvas,
       midtoneMask: this.state.processed.midtoneMaskCanvas,
       shadowMask: this.state.processed.shadowMaskCanvas,
+      massStudy: this.state.processed.massStudyCanvas,
       colorStudy: this.state.processed.colorStudyCanvas,
       valueContours: this.state.processed.valueContourCanvas,
       outlineSketch: this.getActiveOutlineCanvas(),

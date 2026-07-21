@@ -10,6 +10,7 @@ const APP_ASSETS = [
   "./modules/palette-processors.js?v=36",
   "./modules/observation-processors.js?v=36",
   "./modules/color-study-processors.js?v=36",
+  "./modules/simplification-processors.js?v=36",
   "./manifest.webmanifest",
   "./icons/icon.svg"
 ];
