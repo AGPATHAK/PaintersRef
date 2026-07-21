@@ -73,14 +73,26 @@ function computeAdaptiveNotanCutoffs(grayscaleCanvas) {
   return { shadowCutoff, lightCutoff };
 }
 
+// Value Groups' own neutral fill for pixels outside the isolated band, when
+// isolating - a flat pale tone rather than the source's own light band, so
+// the isolated shape reads clearly against a blank field.
+const VALUE_GROUPS_ISOLATE_NEUTRAL_GRAY = 232;
+
 // Posterizes to `count` (2-5) equal-population value bands: cutoffs come from
 // equal percentile splits of the image's own histogram (same idea as adaptive
 // Notan), and output greys are evenly spaced across 0-255 regardless of where
 // the source values actually cluster - so a 4-value split always reads as
 // 4 distinct steps, not 4 steps bunched into one visual grey.
+//
+// `options.isolateBand`, if set (0-indexed), replaces the old dedicated
+// Light/Midtone/Shadow Mask views: every pixel outside that one band gets a
+// flat neutral fill instead of its own band's grey, so only that band's
+// shape reads against a blank field. Same band-membership computation either
+// way - isolating only changes which colour gets written per pixel.
 function createValueGroupsCanvasFromGrayscaleCanvas(grayscaleCanvas, options = {}) {
   const levels = clamp(Math.round(options.count || 4), 2, 5);
   const percentileValue = buildGrayscalePercentileLookup(grayscaleCanvas);
+  const isolateBand = Number.isInteger(options.isolateBand) ? options.isolateBand : null;
 
   const cutoffs = [];
   for (let band = 1; band < levels; band += 1) {
@@ -103,7 +115,10 @@ function createValueGroupsCanvasFromGrayscaleCanvas(grayscaleCanvas, options = {
       band += 1;
     }
 
-    const gray = Math.round((band / maxLevelIndex) * 255);
+    const gray = isolateBand === null || band === isolateBand
+      ? Math.round((band / maxLevelIndex) * 255)
+      : VALUE_GROUPS_ISOLATE_NEUTRAL_GRAY;
+
     data[i] = gray;
     data[i + 1] = gray;
     data[i + 2] = gray;

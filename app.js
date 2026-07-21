@@ -201,6 +201,50 @@ function drawValueStripOverlay(ctx, options) {
   }
 }
 
+// Value Groups' own strip variant: exactly `count` segments (not the generic
+// 11), each filled with that band's real output grey, so the strip matches
+// the image's actual palette 1:1. Clicking a segment isolates that band -
+// this replaces the old Light/Midtone/Shadow Mask views, generalised to
+// however many bands are currently selected instead of a fixed three.
+function drawValueGroupsBandStripOverlay(ctx, options) {
+  const { x, width, height, count, isolatedBand } = options;
+  const maxBandIndex = count - 1;
+  const stepHeight = height / count;
+
+  for (let band = 0; band < count; band += 1) {
+    const gray = Math.round((band / maxBandIndex) * 255);
+    const y = (maxBandIndex - band) * stepHeight;
+
+    ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray})`;
+    ctx.fillRect(x, y, width, stepHeight);
+  }
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+  ctx.lineWidth = 1;
+
+  for (let band = 1; band < count; band += 1) {
+    const y = band * stepHeight;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + width, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeRect(x + 0.5, 0.5, width - 1, height - 1);
+  ctx.restore();
+
+  if (isolatedBand !== null && isolatedBand !== undefined) {
+    const y = (maxBandIndex - isolatedBand) * stepHeight;
+
+    ctx.save();
+    ctx.strokeStyle = "#c4682e";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 1.5, y + 1.5, width - 3, stepHeight - 3);
+    ctx.restore();
+  }
+}
+
 /* ---------------------------------
    Export utilities
 --------------------------------- */
@@ -632,7 +676,8 @@ class PaintersReferenceApp {
         detail: "medium"
       },
       valueGroups: {
-        count: 4
+        count: 4,
+        isolatedBand: null
       },
       stageSelections: {
         baseline: "original",
@@ -772,9 +817,6 @@ class PaintersReferenceApp {
       grayscale: "painting",
       notan: "painting",
       valueGroups: "painting",
-      lightMask: "painting",
-      midtoneMask: "painting",
-      shadowMask: "painting",
       temperatureStudy: "painting",
       colorStudy: "painting",
       paletteStudy: "painting"
@@ -877,6 +919,7 @@ class PaintersReferenceApp {
         }
 
         this.state.valueGroups.count = count;
+        this.state.valueGroups.isolatedBand = null;
         this.refreshValueGroupsCanvas();
         this.updateValueGroupsControls();
         this.renderScene();
@@ -1145,9 +1188,6 @@ class PaintersReferenceApp {
       grayscale: "Grayscale",
       notan: "3-Value Notan",
       valueGroups: "Value Groups",
-      lightMask: "Light Mask",
-      midtoneMask: "Midtone Mask",
-      shadowMask: "Shadow Mask",
       temperatureStudy: "Temperature Study",
       colorStudy: "Color Study",
       paletteStudy: "Palette Notes",
@@ -1219,9 +1259,6 @@ class PaintersReferenceApp {
       grayscale: "Grayscale",
       notan: "3-Value Notan",
       valueGroups: "Value Groups",
-      lightMask: "Light Mask",
-      midtoneMask: "Midtone Mask",
-      shadowMask: "Shadow Mask",
       temperatureStudy: "Temperature Study",
       colorStudy: "Color Study",
       paletteStudy: "Palette Notes"
@@ -1486,7 +1523,7 @@ class PaintersReferenceApp {
 
     this.state.processed.valueGroupsCanvas = createValueGroupsCanvasFromGrayscaleCanvas(
       this.state.processed.grayscaleCanvas,
-      { count: this.state.valueGroups.count }
+      { count: this.state.valueGroups.count, isolateBand: this.state.valueGroups.isolatedBand }
     );
   }
 
@@ -1686,7 +1723,8 @@ class PaintersReferenceApp {
     };
     const notanCanvas = createNotanCanvasFromGrayscaleCanvas(grayscaleCanvas, notanCutoffs);
     const valueGroupsCanvas = createValueGroupsCanvasFromGrayscaleCanvas(grayscaleCanvas, {
-      count: this.state.valueGroups.count
+      count: this.state.valueGroups.count,
+      isolateBand: this.state.valueGroups.isolatedBand
     });
 
     const lightMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "light", notanCutoffs);
@@ -1912,9 +1950,6 @@ class PaintersReferenceApp {
       grayscale: this.state.processed.grayscaleCanvas,
       notan: this.state.processed.notanCanvas,
       valueGroups: this.state.processed.valueGroupsCanvas,
-      lightMask: this.state.processed.lightMaskCanvas,
-      midtoneMask: this.state.processed.midtoneMaskCanvas,
-      shadowMask: this.state.processed.shadowMaskCanvas,
       colorStudy: this.state.processed.colorStudyCanvas,
       valueContours: this.state.processed.valueContourCanvas,
       outlineSketch: this.getActiveOutlineCanvas(),
@@ -2014,6 +2049,18 @@ class PaintersReferenceApp {
     const canvasX = (event.clientX - rect.left) * scaleX;
     const canvasY = (event.clientY - rect.top) * scaleY;
 
+    if (
+      this.state.viewMode === "valueGroups" &&
+      this.valueStripLayout &&
+      canvasX >= this.valueStripLayout.x &&
+      canvasX < this.valueStripLayout.x + this.valueStripLayout.width &&
+      canvasY >= 0 &&
+      canvasY < this.valueStripLayout.height
+    ) {
+      this.handleValueGroupsBandStripClick(canvasY);
+      return;
+    }
+
     if (canvasX < 0 || canvasX >= baseCanvas.width || canvasY < 0 || canvasY >= baseCanvas.height) {
       return;
     }
@@ -2025,6 +2072,29 @@ class PaintersReferenceApp {
 
     this.state.valueRead = { viewMode: this.state.viewMode, step };
     this.updateStatus(`Value ${step}/10`);
+    this.renderScene();
+  }
+
+  // Clicking a band on Value Groups' scale isolates it (toggle: clicking the
+  // already-isolated band returns to showing all bands) - this is what
+  // replaced the old Light/Midtone/Shadow Mask views.
+  handleValueGroupsBandStripClick(canvasY) {
+    const count = this.state.valueGroups.count;
+    const maxBandIndex = count - 1;
+    const stepHeight = this.valueStripLayout.height / count;
+    const rowFromTop = clamp(Math.floor(canvasY / stepHeight), 0, maxBandIndex);
+    const clickedBand = maxBandIndex - rowFromTop;
+
+    this.state.valueGroups.isolatedBand = this.state.valueGroups.isolatedBand === clickedBand
+      ? null
+      : clickedBand;
+
+    this.refreshValueGroupsCanvas();
+    this.updateStatus(
+      this.state.valueGroups.isolatedBand === null
+        ? "Showing all value bands"
+        : `Value band ${this.state.valueGroups.isolatedBand + 1}/${count} isolated`
+    );
     this.renderScene();
   }
 
@@ -2356,7 +2426,15 @@ class PaintersReferenceApp {
       drawGridOverlay(this.ctx, { width: baseCanvas.width, height: baseCanvas.height }, this.state.grid);
     }
 
-    if (this.valueStripLayout) {
+    if (this.valueStripLayout && this.state.viewMode === "valueGroups") {
+      drawValueGroupsBandStripOverlay(this.ctx, {
+        x: this.valueStripLayout.x,
+        width: this.valueStripLayout.width,
+        height: this.valueStripLayout.height,
+        count: this.state.valueGroups.count,
+        isolatedBand: this.state.valueGroups.isolatedBand
+      });
+    } else if (this.valueStripLayout) {
       const highlightStep = this.state.valueRead.viewMode === this.state.viewMode
         ? this.state.valueRead.step
         : null;
