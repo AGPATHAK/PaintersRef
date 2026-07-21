@@ -24,7 +24,7 @@
    App Configuration / Constants
    ================================================== */
 
-const APP_VERSION_LABEL = "V2 build 34";
+const APP_VERSION_LABEL = "V2 build 35";
 const SUPPORTED_TYPES = ["image/jpeg", "image/png"];
 
 const COMPOSITION_CROP_OPTIONS = [
