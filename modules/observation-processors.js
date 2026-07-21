@@ -526,3 +526,19 @@ function createSquintCanvasFromCanvas(originalCanvas, options = {}) {
 
   return bilinearUpscale(quantizedCanvas, originalCanvas.width, originalCanvas.height);
 }
+
+// Outline via Squint: instead of raw Sobel gradient magnitude (which spikes on
+// every leaf/twig in foliage-heavy landscapes, forcing despeckle to patch over
+// noise rather than fix its source), trace boundaries directly on Squint's own
+// mass-forming output. Squint's bilateral+quantize pipeline already turns
+// texture into a few flat, edge-respecting value regions - re-quantizing that
+// output to the same level count and marking adjacent-level mismatches
+// (the existing "Simple" preset technique, createPosterizedRegionEdgeCanvas)
+// recovers real object silhouettes instead of gradient noise. No new
+// low-level pixel code needed: this only recombines existing building blocks.
+function createSquintRegionOutlineCanvas(originalCanvas, softness) {
+  const settings = getSquintPipelineSettings(softness);
+  const squintCanvas = createSquintCanvasFromCanvas(originalCanvas, { softness, mode: "gray" });
+  const edgeCanvas = createPosterizedRegionEdgeCanvas(squintCanvas, settings.valueLevels);
+  return despeckleEdgeCanvas(edgeCanvas);
+}

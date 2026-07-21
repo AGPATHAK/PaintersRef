@@ -1427,6 +1427,21 @@ class PaintersReferenceApp {
   }
 
   refreshOutlineCanvas() {
+    const sourceKey = this.state.outline.source || "gray";
+
+    if (sourceKey === "squint") {
+      if (!this.state.processed.originalCanvas) {
+        return;
+      }
+
+      this.state.processed.outlineSketchCanvas = createSquintRegionOutlineCanvas(
+        this.state.processed.originalCanvas,
+        this.state.outlineSource.squintSoftness
+      );
+      this.refreshMirrorCanvas();
+      return;
+    }
+
     const outlineSourceCanvas = this.getOutlineSourceCanvas();
     if (!outlineSourceCanvas) {
       return;
@@ -1495,6 +1510,8 @@ class PaintersReferenceApp {
     this.refreshSquintCanvas();
   }
 
+  // Note: "squint" source bypasses this - both call sites route it straight
+  // to createSquintRegionOutlineCanvas instead of the generic blur+edge path.
   getOutlineSourceCanvasFromCanvases(canvases) {
     const sourceKey = this.state.outline.source || "gray";
 
@@ -1504,13 +1521,6 @@ class PaintersReferenceApp {
 
     if (!canvases.grayscaleCanvas) {
       return null;
-    }
-
-    if (sourceKey === "squint") {
-      return createSquintCanvasFromCanvas(canvases.originalCanvas, {
-        softness: this.state.outlineSource.squintSoftness,
-        mode: "gray"
-      });
     }
 
     if (sourceKey === "notan") {
@@ -1590,14 +1600,18 @@ class PaintersReferenceApp {
       softness: this.state.squint.softness,
       mode: "color"
     });
-    const outlineSourceCanvas = this.getOutlineSourceCanvasFromCanvases({
-      originalCanvas,
-      grayscaleCanvas,
-      notanCanvas,
-      squintCanvas
-    });
-    const outlineSketchCanvas =
-      createOutlineSketchCanvasFromGrayscaleCanvas(outlineSourceCanvas, this.state.outline);
+    const outlineSourceKey = this.state.outline.source || "gray";
+    const outlineSketchCanvas = outlineSourceKey === "squint"
+      ? createSquintRegionOutlineCanvas(originalCanvas, this.state.outlineSource.squintSoftness)
+      : createOutlineSketchCanvasFromGrayscaleCanvas(
+        this.getOutlineSourceCanvasFromCanvases({
+          originalCanvas,
+          grayscaleCanvas,
+          notanCanvas,
+          squintCanvas
+        }),
+        this.state.outline
+      );
     const mirrorCanvas = createMirroredCanvasFromCanvas(outlineSketchCanvas);
     const paletteColors = extractDominantPaletteFromCanvas(originalCanvas, {
       colorCount: 5
