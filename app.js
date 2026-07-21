@@ -134,6 +134,74 @@ function drawGridOverlay(ctx, canvas, options) {
 }
 
 /* ---------------------------------
+   Value scale strip (2.2)
+--------------------------------- */
+
+// Views where reading an absolute value (not hue or a curated mask) is the
+// point, so a click-to-read scale earns its place along the canvas edge.
+const VALUE_STRIP_VIEW_MODES = ["grayscale", "squint", "notan", "valueGroups"];
+
+function getValueStripWidth(imageWidth) {
+  return clamp(Math.round(imageWidth * 0.05), 40, 70);
+}
+
+// Drawn directly onto the main canvas (not a separate overlay element) so
+// Print This View captures it like any other pixel. Step 10 (white) sits at
+// the top and step 0 (black) at the bottom, matching how painters read a
+// value scale - light at the top, dark at the bottom.
+function drawValueStripOverlay(ctx, options) {
+  const { x, width, height, highlightStep } = options;
+  const steps = 11;
+  const stepHeight = height / steps;
+
+  for (let step = 0; step < steps; step += 1) {
+    const gray = Math.round((step / (steps - 1)) * 255);
+    const y = (steps - 1 - step) * stepHeight;
+
+    ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray})`;
+    ctx.fillRect(x, y, width, stepHeight);
+  }
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+  ctx.lineWidth = 1;
+
+  for (let step = 1; step < steps; step += 1) {
+    const y = step * stepHeight;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + width, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeRect(x + 0.5, 0.5, width - 1, height - 1);
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = "600 11px 'Avenir Next', Avenir, Aptos, 'Helvetica Neue', Helvetica, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  [0, 5, 10].forEach((labelStep) => {
+    const centerY = ((steps - 1 - labelStep) * stepHeight) + (stepHeight / 2);
+    ctx.fillStyle = labelStep <= 4 ? "#ffffff" : "#111111";
+    ctx.fillText(String(labelStep), x + (width / 2), centerY);
+  });
+
+  ctx.restore();
+
+  if (highlightStep !== null && highlightStep !== undefined) {
+    const y = (steps - 1 - highlightStep) * stepHeight;
+
+    ctx.save();
+    ctx.strokeStyle = "#c4682e";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 1.5, y + 1.5, width - 3, stepHeight - 3);
+    ctx.restore();
+  }
+}
+
+/* ---------------------------------
    Export utilities
 --------------------------------- */
 
@@ -590,6 +658,10 @@ class PaintersReferenceApp {
         point: null,
         cropPercent: 72
       },
+      valueRead: {
+        viewMode: null,
+        step: null
+      },
       // Selecting a composition crop replaces the working source used by later stages.
       compositionChoice: {
         key: "original",
@@ -634,6 +706,7 @@ class PaintersReferenceApp {
 
     this.maxCanvasDimension = 1600;
     this.focalStudyLayout = null;
+    this.valueStripLayout = null;
     this.squintRecomputeHandle = null;
 
     this.initializeTheme();
@@ -717,6 +790,7 @@ class PaintersReferenceApp {
 
     this.state.studySheetPreview.isOpen = false;
     this.state.viewMode = nextViewMode;
+    this.state.valueRead = { viewMode: null, step: null };
     this.state.activeStage = this.getStageForViewMode(nextViewMode);
     this.state.stageSelections[this.state.activeStage] = nextViewMode;
     this.updateViewModeLabel();
@@ -1855,7 +1929,18 @@ class PaintersReferenceApp {
   }
 
   handleMainCanvasClick(event) {
-    if (!this.state.processed.referenceCanvas || this.state.viewMode !== "focalStudy") {
+    if (this.state.viewMode === "focalStudy") {
+      this.handleFocalStudyCanvasClick(event);
+      return;
+    }
+
+    if (VALUE_STRIP_VIEW_MODES.includes(this.state.viewMode)) {
+      this.handleValueStripCanvasClick(event);
+    }
+  }
+
+  handleFocalStudyCanvasClick(event) {
+    if (!this.state.processed.referenceCanvas) {
       return;
     }
 
@@ -1910,6 +1995,36 @@ class PaintersReferenceApp {
 
     this.updateFocalStudyControls();
     this.updateStatus("Focal point selected");
+    this.renderScene();
+  }
+
+  handleValueStripCanvasClick(event) {
+    const baseCanvas = this.getActiveBaseCanvas();
+    if (!baseCanvas) {
+      return;
+    }
+
+    const rect = this.dom.mainCanvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return;
+    }
+
+    const scaleX = this.dom.mainCanvas.width / rect.width;
+    const scaleY = this.dom.mainCanvas.height / rect.height;
+    const canvasX = (event.clientX - rect.left) * scaleX;
+    const canvasY = (event.clientY - rect.top) * scaleY;
+
+    if (canvasX < 0 || canvasX >= baseCanvas.width || canvasY < 0 || canvasY >= baseCanvas.height) {
+      return;
+    }
+
+    const sampleCtx = baseCanvas.getContext("2d", { willReadFrequently: true });
+    const pixel = sampleCtx.getImageData(Math.floor(canvasX), Math.floor(canvasY), 1, 1).data;
+    const luma = (0.299 * pixel[0]) + (0.587 * pixel[1]) + (0.114 * pixel[2]);
+    const step = clamp(Math.round((luma / 255) * 10), 0, 10);
+
+    this.state.valueRead = { viewMode: this.state.viewMode, step };
+    this.updateStatus(`Value ${step}/10`);
     this.renderScene();
   }
 
@@ -2103,6 +2218,7 @@ class PaintersReferenceApp {
     );
 
     this.focalStudyLayout = null;
+    this.valueStripLayout = null;
     this.updateStatus("Temperature study ready");
     this.updateInfo();
     this.updateViewModeLabel();
@@ -2163,6 +2279,7 @@ class PaintersReferenceApp {
     );
 
     this.focalStudyLayout = null;
+    this.valueStripLayout = null;
     this.updateStatus(`${studyLabel} ready`);
     this.updateInfo();
     this.updateViewModeLabel();
@@ -2182,6 +2299,7 @@ class PaintersReferenceApp {
     );
 
     this.focalStudyLayout = null;
+    this.valueStripLayout = null;
     setCanvasSize(this.dom.mainCanvas, paletteCanvas.width, paletteCanvas.height);
     clearCanvas(this.ctx, this.dom.mainCanvas);
     this.ctx.drawImage(paletteCanvas, 0, 0);
@@ -2223,12 +2341,32 @@ class PaintersReferenceApp {
     const baseCanvas = this.getActiveBaseCanvas();
     if (!baseCanvas) return;
 
-    setCanvasSize(this.dom.mainCanvas, baseCanvas.width, baseCanvas.height);
+    const showValueStrip = VALUE_STRIP_VIEW_MODES.includes(this.state.viewMode);
+    const stripWidth = showValueStrip ? getValueStripWidth(baseCanvas.width) : 0;
+
+    this.valueStripLayout = showValueStrip
+      ? { x: baseCanvas.width, width: stripWidth, height: baseCanvas.height }
+      : null;
+
+    setCanvasSize(this.dom.mainCanvas, baseCanvas.width + stripWidth, baseCanvas.height);
     clearCanvas(this.ctx, this.dom.mainCanvas);
     this.ctx.drawImage(baseCanvas, 0, 0);
 
     if (this.state.grid.show) {
-      drawGridOverlay(this.ctx, this.dom.mainCanvas, this.state.grid);
+      drawGridOverlay(this.ctx, { width: baseCanvas.width, height: baseCanvas.height }, this.state.grid);
+    }
+
+    if (this.valueStripLayout) {
+      const highlightStep = this.state.valueRead.viewMode === this.state.viewMode
+        ? this.state.valueRead.step
+        : null;
+
+      drawValueStripOverlay(this.ctx, {
+        x: this.valueStripLayout.x,
+        width: this.valueStripLayout.width,
+        height: this.valueStripLayout.height,
+        highlightStep
+      });
     }
 
     this.updateInfo();
@@ -2398,6 +2536,7 @@ class PaintersReferenceApp {
     const activeLabel = this.getStudySheetLabel();
 
     this.focalStudyLayout = null;
+    this.valueStripLayout = null;
     setCanvasSize(this.dom.mainCanvas, previewCanvas.width, previewCanvas.height);
     clearCanvas(this.ctx, this.dom.mainCanvas);
     this.ctx.drawImage(previewCanvas, 0, 0);
