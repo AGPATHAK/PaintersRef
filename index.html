@@ -200,6 +200,7 @@
               <button type="button" class="view-mode-button" data-view-mode="squint">Squint</button>
               <button type="button" class="view-mode-button" data-view-mode="grayscale">Grayscale</button>
               <button type="button" class="view-mode-button" data-view-mode="notan">3-Value Notan</button>
+              <button type="button" class="view-mode-button" data-view-mode="valueGroups">Value Groups</button>
               <button type="button" class="view-mode-button" data-view-mode="lightMask">Light Mask</button>
               <button type="button" class="view-mode-button" data-view-mode="midtoneMask">Midtone Mask</button>
               <button type="button" class="view-mode-button" data-view-mode="shadowMask">Shadow Mask</button>
@@ -278,6 +279,20 @@
               </div>
               <p class="helper-text">
                 Notan groups the image into dark, middle, and light shapes. Defaults adapt to each image; Reset to Auto restores them.
+              </p>
+            </div>
+            <div id="valueGroupsControlsSection" class="mode-detail is-hidden">
+              <div class="detail-header-row">
+                <h3>Value Groups</h3>
+              </div>
+              <div class="preset-button-row">
+                <button type="button" class="secondary-button secondary-button--small" data-value-groups-count="2">2</button>
+                <button type="button" class="secondary-button secondary-button--small" data-value-groups-count="3">3</button>
+                <button type="button" class="secondary-button secondary-button--small" data-value-groups-count="4">4</button>
+                <button type="button" class="secondary-button secondary-button--small" data-value-groups-count="5">5</button>
+              </div>
+              <p class="helper-text">
+                Groups the image into an equal number of value steps, split from the image's own value range.
               </p>
             </div>
             <div id="temperatureControlsSection" class="mode-detail is-hidden">

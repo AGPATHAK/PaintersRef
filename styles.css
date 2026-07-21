@@ -808,7 +808,8 @@ button:disabled:hover {
 }
 
 .outline-preset-button.is-active,
-#valueContourControlsSection .secondary-button.is-active {
+#valueContourControlsSection .secondary-button.is-active,
+#valueGroupsControlsSection .secondary-button.is-active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fffdf8;

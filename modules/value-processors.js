@@ -26,10 +26,11 @@ function createGrayscaleCanvasFromCanvas(sourceCanvas) {
   return outputCanvas;
 }
 
-// Per-image notan cutoffs from the 33rd/66th percentile of the value
-// histogram, so a low-key or high-key reference does not collapse to a
-// nearly all-black or all-white 3-value split.
-function computeAdaptiveNotanCutoffs(grayscaleCanvas) {
+// Returns a function mapping a percentile (0-1) to the grayscale value below
+// which that fraction of pixels falls, from the image's own value histogram.
+// Shared by adaptive Notan cutoffs and Value Groups banding so both derive
+// their splits from the actual image rather than fixed thresholds.
+function buildGrayscalePercentileLookup(grayscaleCanvas) {
   const ctx = grayscaleCanvas.getContext("2d", { willReadFrequently: true });
   const { data } = ctx.getImageData(0, 0, grayscaleCanvas.width, grayscaleCanvas.height);
 
@@ -41,7 +42,7 @@ function computeAdaptiveNotanCutoffs(grayscaleCanvas) {
     totalPixels += 1;
   }
 
-  const percentileValue = (percentile) => {
+  return (percentile) => {
     const target = totalPixels * percentile;
     let cumulative = 0;
 
@@ -54,6 +55,13 @@ function computeAdaptiveNotanCutoffs(grayscaleCanvas) {
 
     return 255;
   };
+}
+
+// Per-image notan cutoffs from the 33rd/66th percentile of the value
+// histogram, so a low-key or high-key reference does not collapse to a
+// nearly all-black or all-white 3-value split.
+function computeAdaptiveNotanCutoffs(grayscaleCanvas) {
+  const percentileValue = buildGrayscalePercentileLookup(grayscaleCanvas);
 
   const shadowCutoff = clamp(percentileValue(0.33), 40, 140);
   let lightCutoff = clamp(percentileValue(0.66), 130, 220);
@@ -63,6 +71,46 @@ function computeAdaptiveNotanCutoffs(grayscaleCanvas) {
   }
 
   return { shadowCutoff, lightCutoff };
+}
+
+// Posterizes to `count` (2-5) equal-population value bands: cutoffs come from
+// equal percentile splits of the image's own histogram (same idea as adaptive
+// Notan), and output greys are evenly spaced across 0-255 regardless of where
+// the source values actually cluster - so a 4-value split always reads as
+// 4 distinct steps, not 4 steps bunched into one visual grey.
+function createValueGroupsCanvasFromGrayscaleCanvas(grayscaleCanvas, options = {}) {
+  const levels = clamp(Math.round(options.count || 4), 2, 5);
+  const percentileValue = buildGrayscalePercentileLookup(grayscaleCanvas);
+
+  const cutoffs = [];
+  for (let band = 1; band < levels; band += 1) {
+    cutoffs.push(percentileValue(band / levels));
+  }
+
+  const outputCanvas = createOffscreenCanvas(grayscaleCanvas.width, grayscaleCanvas.height);
+  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+  outputCtx.drawImage(grayscaleCanvas, 0, 0);
+
+  const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
+  const { data } = imageData;
+  const maxLevelIndex = levels - 1;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const value = data[i];
+    let band = 0;
+
+    while (band < cutoffs.length && value > cutoffs[band]) {
+      band += 1;
+    }
+
+    const gray = Math.round((band / maxLevelIndex) * 255);
+    data[i] = gray;
+    data[i + 1] = gray;
+    data[i + 2] = gray;
+  }
+
+  outputCtx.putImageData(imageData, 0, 0);
+  return outputCanvas;
 }
 
 function createNotanCanvasFromGrayscaleCanvas(grayscaleCanvas, options = {}) {

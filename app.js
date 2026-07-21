@@ -488,6 +488,8 @@ class PaintersReferenceApp {
       notanLightCutoffInput: document.getElementById("notanLightCutoffInput"),
       notanLightCutoffValue: document.getElementById("notanLightCutoffValue"),
       notanControlsSection: document.getElementById("notanControlsSection"),
+      valueGroupsControlsSection: document.getElementById("valueGroupsControlsSection"),
+      valueGroupsButtons: Array.from(document.querySelectorAll("[data-value-groups-count]")),
       temperatureControlsSection: document.getElementById("temperatureControlsSection"),
       temperatureNeutralThresholdInput: document.getElementById("temperatureNeutralThresholdInput"),
       temperatureNeutralThresholdValue: document.getElementById("temperatureNeutralThresholdValue"),
@@ -561,6 +563,9 @@ class PaintersReferenceApp {
       valueContour: {
         detail: "medium"
       },
+      valueGroups: {
+        count: 4
+      },
       stageSelections: {
         baseline: "original",
         composition: "focalStudy",
@@ -597,6 +602,7 @@ class PaintersReferenceApp {
         originalCanvas: null,
         grayscaleCanvas: null,
         notanCanvas: null,
+        valueGroupsCanvas: null,
         lightMaskCanvas: null,
         midtoneMaskCanvas: null,
         shadowMaskCanvas: null,
@@ -692,6 +698,7 @@ class PaintersReferenceApp {
       mirror: "drawing",
       grayscale: "painting",
       notan: "painting",
+      valueGroups: "painting",
       lightMask: "painting",
       midtoneMask: "painting",
       shadowMask: "painting",
@@ -784,6 +791,20 @@ class PaintersReferenceApp {
 
         this.state.squint.mode = mode;
         this.updateSquintControls();
+        this.renderScene();
+      });
+    });
+
+    this.dom.valueGroupsButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const count = parseInt(button.dataset.valueGroupsCount, 10);
+        if (!count || count === this.state.valueGroups.count) {
+          return;
+        }
+
+        this.state.valueGroups.count = count;
+        this.refreshValueGroupsCanvas();
+        this.updateValueGroupsControls();
         this.renderScene();
       });
     });
@@ -1017,6 +1038,7 @@ class PaintersReferenceApp {
     this.updateValueContourControls();
     this.updateSquintControls();
     this.updateNotanControls();
+    this.updateValueGroupsControls();
     this.updateTemperatureControls();
     this.updateColorStudyControls();
     this.updateFocalStudyControls();
@@ -1048,6 +1070,7 @@ class PaintersReferenceApp {
       focalStudy: "Focal Study",
       grayscale: "Grayscale",
       notan: "3-Value Notan",
+      valueGroups: "Value Groups",
       lightMask: "Light Mask",
       midtoneMask: "Midtone Mask",
       shadowMask: "Shadow Mask",
@@ -1121,6 +1144,7 @@ class PaintersReferenceApp {
       mirror: "Mirror Check",
       grayscale: "Grayscale",
       notan: "3-Value Notan",
+      valueGroups: "Value Groups",
       lightMask: "Light Mask",
       midtoneMask: "Midtone Mask",
       shadowMask: "Shadow Mask",
@@ -1142,6 +1166,10 @@ class PaintersReferenceApp {
     const isNotanActive =
       this.state.activeStage === "painting" && this.state.viewMode === "notan";
     this.dom.notanControlsSection.classList.toggle("is-hidden", !isNotanActive);
+
+    const isValueGroupsActive =
+      this.state.activeStage === "painting" && this.state.viewMode === "valueGroups";
+    this.dom.valueGroupsControlsSection.classList.toggle("is-hidden", !isValueGroupsActive);
 
     const isOutlineActive =
       this.state.activeStage === "drawing" && this.state.viewMode === "outlineSketch";
@@ -1245,6 +1273,14 @@ class PaintersReferenceApp {
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
     this.updateRangeFills();
+  }
+
+  updateValueGroupsControls() {
+    this.dom.valueGroupsButtons.forEach((button) => {
+      const isActive = parseInt(button.dataset.valueGroupsCount, 10) === this.state.valueGroups.count;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
   }
 
   updateTemperatureControls() {
@@ -1367,6 +1403,17 @@ class PaintersReferenceApp {
     );
 
     this.refreshMaskCanvases(notanCutoffs);
+  }
+
+  refreshValueGroupsCanvas() {
+    if (!this.state.processed.grayscaleCanvas) {
+      return;
+    }
+
+    this.state.processed.valueGroupsCanvas = createValueGroupsCanvasFromGrayscaleCanvas(
+      this.state.processed.grayscaleCanvas,
+      { count: this.state.valueGroups.count }
+    );
   }
 
   // Sheet 2's tonal masks always partition the same shadow/light cutoffs as
@@ -1564,6 +1611,9 @@ class PaintersReferenceApp {
       lightCutoff: this.state.notan.lightCutoff
     };
     const notanCanvas = createNotanCanvasFromGrayscaleCanvas(grayscaleCanvas, notanCutoffs);
+    const valueGroupsCanvas = createValueGroupsCanvasFromGrayscaleCanvas(grayscaleCanvas, {
+      count: this.state.valueGroups.count
+    });
 
     const lightMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "light", notanCutoffs);
     const midtoneMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "midtone", notanCutoffs);
@@ -1621,6 +1671,7 @@ class PaintersReferenceApp {
     this.state.processed.originalCanvas = originalCanvas;
     this.state.processed.grayscaleCanvas = grayscaleCanvas;
     this.state.processed.notanCanvas = notanCanvas;
+    this.state.processed.valueGroupsCanvas = valueGroupsCanvas;
     this.state.processed.lightMaskCanvas = lightMaskCanvas;
     this.state.processed.midtoneMaskCanvas = midtoneMaskCanvas;
     this.state.processed.shadowMaskCanvas = shadowMaskCanvas;
@@ -1786,6 +1837,7 @@ class PaintersReferenceApp {
       original: this.state.processed.originalCanvas,
       grayscale: this.state.processed.grayscaleCanvas,
       notan: this.state.processed.notanCanvas,
+      valueGroups: this.state.processed.valueGroupsCanvas,
       lightMask: this.state.processed.lightMaskCanvas,
       midtoneMask: this.state.processed.midtoneMaskCanvas,
       shadowMask: this.state.processed.shadowMaskCanvas,
