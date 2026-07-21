@@ -206,7 +206,6 @@
               <button type="button" class="view-mode-button" data-view-mode="midtoneMask">Midtone Mask</button>
               <button type="button" class="view-mode-button" data-view-mode="shadowMask">Shadow Mask</button>
               <h3 class="view-mode-group-label">Colour</h3>
-              <button type="button" class="view-mode-button" data-view-mode="massStudy">Mass Study</button>
               <button type="button" class="view-mode-button" data-view-mode="temperatureStudy">Temperature Study</button>
               <button type="button" class="view-mode-button" data-view-mode="colorStudy">Color Study</button>
               <button type="button" class="view-mode-button" data-view-mode="paletteStudy">Palette Notes</button>
@@ -296,20 +295,6 @@
               </div>
               <p class="helper-text">
                 Groups the image into an equal number of value steps, split from the image's own value range.
-              </p>
-            </div>
-            <div id="massStudyControlsSection" class="mode-detail is-hidden">
-              <div class="detail-header-row">
-                <h3>Mass Study</h3>
-                <span id="massStudyPresetLabel" class="detail-status-label">Balanced</span>
-              </div>
-              <div class="preset-button-row">
-                <button type="button" class="secondary-button secondary-button--small" data-mass-study-detail="low">Simple</button>
-                <button type="button" class="secondary-button secondary-button--small" data-mass-study-detail="medium">Balanced</button>
-                <button type="button" class="secondary-button secondary-button--small" data-mass-study-detail="high">Detailed</button>
-              </div>
-              <p class="helper-text">
-                Reduces the image to a few big, muted colour masses - no texture, no detail.
               </p>
             </div>
             <div id="temperatureControlsSection" class="mode-detail is-hidden">
@@ -491,7 +476,6 @@
   <script src="./modules/palette-processors.js?v=39"></script>
   <script src="./modules/observation-processors.js?v=39"></script>
   <script src="./modules/color-study-processors.js?v=39"></script>
-  <script src="./modules/simplification-processors.js?v=39"></script>
   <script src="./app.js?v=39"></script>
 </body>
 </html>
