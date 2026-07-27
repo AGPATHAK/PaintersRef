@@ -35,6 +35,8 @@
 - [ ] Outline Sketch works.
 - [ ] Outline Source options work.
 - [ ] Simple / Balanced / Detailed outline presets work.
+- [ ] Value Contours works.
+- [ ] Simple / Balanced / Detailed Value Contours presets work.
 - [ ] Mirror check works.
 
 ### Painting
@@ -49,11 +51,14 @@
 - [ ] Temperature study works.
 - [ ] Focus on Color updates result.
 - [ ] Warm/Cool Balance updates result.
+- [ ] Color Study works.
+- [ ] Color Study presets are visibly distinct and avoid obvious unwanted color casts.
 - [ ] Palette notes appear.
 
-### Exports
+### Print / Exports
 
-- [ ] Export Current View works.
+- [ ] Print This View is visible without opening Export.
+- [ ] Print This View exports the active study view, not a prepared sheet.
 - [ ] Sheet 1 preview works.
 - [ ] Sheet 2 preview works.
 - [ ] Sheet 3 preview works.

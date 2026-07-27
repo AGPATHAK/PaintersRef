@@ -23,21 +23,22 @@ https://agpathak.github.io/PaintersRef/
   - Info
 - Provides drawing aids:
   - Outline Sketch
+  - Value Contours
   - Mirror Check
   - Outline Source: Gray, Squint, Original, Notan
   - Curated outline detail: Simple, Balanced, Detailed
 - Provides painting studies:
-  - Squint
+  - Squint (Gray or Colour mode)
   - Grayscale
-  - 3-Value Notan
-  - Light Mask
-  - Midtone Mask
-  - Shadow Mask
+  - 3-Value Notan (adaptive cutoffs, manual sliders, Reset to Auto)
+  - Value Groups (2-5 adaptive value bands; click a band on the scale to isolate it, click again to show all bands)
   - Temperature Study
+  - Color Study palette variants
   - Palette Notes
+- Draws a click-to-read value scale alongside Grayscale, Squint, Notan, and Value Groups
 - Adds a configurable grid with adjustable rows and columns
 - Includes a light/dark interface toggle for different studio lighting conditions
-- Exports the current view directly as a JPEG
+- Prints the active study view directly as a JPEG
 - Previews and exports three prepared study sheets
 - Works as a Progressive Web App (PWA) for installable, offline-friendly use
 
@@ -48,9 +49,9 @@ https://agpathak.github.io/PaintersRef/
 3. Move through the workflow stages on the left:
    - `Reference Image`: load/change the image and adjust the grid
    - `Composition`: place a point of interest, keep the original, or select one of four crop studies
-   - `Drawing`: use `Outline Sketch`, `Mirror Check`, `Outline Source`, and `Simple / Balanced / Detailed`
-   - `Painting`: use `Squint`, grayscale, Notan, masks, temperature, and palette views
-   - `Export`: export the current view or preview/export prepared sheets
+   - `Drawing`: use `Outline Sketch`, `Value Contours`, `Mirror Check`, `Outline Source`, and `Simple / Balanced / Detailed`
+   - `Painting`: use `Squint` (Gray/Colour), grayscale, Notan, Value Groups (click a band to isolate it), temperature, Color Study, and palette views
+   - `Export`: preview/export prepared sheets
    - `Info`: check status, size, scale, active view, and outline detail
 4. Adjust painter-facing controls when needed:
    - crop size
@@ -58,7 +59,7 @@ https://agpathak.github.io/PaintersRef/
    - Notan shadow/light cutoffs
    - Focus on Color
    - Warm/Cool Balance
-5. Export the current view or one of the prepared sheets.
+5. Use `Print This View` for the active study, or export one of the prepared sheets.
 
 ## Export Sheets
 
@@ -91,11 +92,11 @@ https://agpathak.github.io/PaintersRef/
 - `Composition`
   `Focal Study` creates four rule-of-thirds crop options around a chosen point of interest. The selected crop, or the original image, becomes the working reference for later stages.
 - `Drawing`
-  `Outline Sketch` supports block-in, and `Mirror Check` helps with structural checking. Outline generation uses a selected source and curated Simple / Balanced / Detailed recipes.
+  `Outline Sketch` supports block-in, `Value Contours` groups value boundaries for simplified drawing decisions, and `Mirror Check` helps with structural checking. Outline generation uses a selected source and curated Simple / Balanced / Detailed recipes.
 - `Painting`
-  `Squint`, grayscale, Notan, value masks, Temperature Study, and Palette Notes help simplify value and color relationships while painting.
+  `Squint` (Gray/Colour), grayscale, Notan, Value Groups (with click-to-isolate a value band), Temperature Study, Color Study, and Palette Notes help simplify value and color relationships while painting. Light/Midtone/Shadow masks still exist internally for Sheet 2's export, but are no longer separate Painting-stage views - Value Groups' isolate feature replaced them.
 - `Export`
-  Export the current canvas view or preview/export prepared study sheets.
+  Preview/export prepared study sheets. Use `Print This View` for the active canvas study.
 - `Info`
   Shows compact status and image/view metadata.
 
@@ -126,17 +127,19 @@ Then open [http://localhost:8080](http://localhost:8080).
 - `manifest.webmanifest` - PWA manifest
 - `service-worker.js` - offline caching
 
-## V2 Refactor Branch Notes
+## V2/V3 Refactor Branch Notes
 
-The `codex/v2` branch has a behavior-preserving module split for deterministic processors:
+The `codex/v2` branch (still named after its starting point) has a behavior-preserving module split for deterministic processors:
 
 - canvas utilities
-- grayscale / Notan processors
+- grayscale / Notan / Value Groups processors
 - tonal and temperature masks
-- palette notes
-- outline, mirror, and Squint helpers
+- palette notes and Color Study variants
+- outline, Value Contours, mirror, and Squint helpers
 
-The visible build chip in the header shows the loaded V2 build. When app-shell files change, bump the build label, script query strings, and service-worker cache together so stale loads are easy to spot.
+As of 2026-07-21 the app is versioned **V3.0** to mark a major milestone: the Squint pipeline was fully rewritten (deterministic downscale -> iterated bilateral filter -> soft value quantisation -> upscale), Outline now traces boundaries from Squint's output instead of raw Sobel gradients, and the Painting stage's value tools were consolidated (Value Groups gained click-to-isolate, replacing the separate Light/Midtone/Shadow Mask views). See `docs/roadmaps/improvement-plan-2026-07.md` for the full history.
+
+The visible build chip in the header shows the loaded build (e.g. "V3.0 build 1"). When app-shell files change, bump the build label, script query strings, and service-worker cache together so stale loads are easy to spot.
 
 ## Planning Documents
 
@@ -144,6 +147,7 @@ Future AI-assisted features are documented as an optional extension, not as a re
 
 - [Current State Audit](docs/current-state-audit.md)
 - [Next Session Brief](docs/next-session-brief.md)
+- [2026-07 Improvement Plan](docs/roadmaps/improvement-plan-2026-07.md) - Squint rewrite, Outline-via-Squint, Value Groups, and the Values-group consolidation into V3.0
 - [Milestones](docs/milestones.md)
 - [Issues Backlog](docs/issues-backlog.md)
 - [Workflow Stage Restructure Roadmap](docs/roadmaps/workflow-stage-restructure-roadmap.md)
@@ -152,6 +156,6 @@ Future AI-assisted features are documented as an optional extension, not as a re
 
 ## Current Product Posture
 
-The current app is stable and usable. The next work should come from real painting use: fix concrete regressions, make small terminology/layout polish changes when they reduce friction, and keep exports/crop/service-worker behavior stable.
+The current app (V3.0) is stable and usable; active development is paused as of 2026-07-21 while the owner tests it across varied references and shares it with a few people. The next work should come from that real-use feedback: fix concrete regressions, make small terminology/layout polish changes when they reduce friction, and keep exports/crop/service-worker behavior stable.
 
 Avoid tool sprawl, generic image editing, Photoshop-like workflows, and features that replace painter judgment instead of supporting it.

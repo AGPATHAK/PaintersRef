@@ -119,10 +119,7 @@ function createBlurredGrayscaleCanvas(sourceCanvas, blurPasses) {
   return currentCanvas;
 }
 
-function createOutlineSketchCanvasFromGrayscaleCanvas(grayscaleCanvas, outlineOptions) {
-  const settings = getOutlineRenderSettings(outlineOptions);
-  const blurredCanvas = createBlurredGrayscaleCanvas(grayscaleCanvas, settings.blurPasses);
-
+function createSobelEdgeCanvas(blurredCanvas, threshold) {
   const width = blurredCanvas.width;
   const height = blurredCanvas.height;
 
@@ -168,7 +165,7 @@ function createOutlineSketchCanvasFromGrayscaleCanvas(grayscaleCanvas, outlineOp
       }
 
       const magnitude = Math.sqrt((gx * gx) + (gy * gy));
-      const isEdge = magnitude >= settings.threshold;
+      const isEdge = magnitude >= threshold;
       const outputValue = isEdge ? 0 : 255;
       const index = (y * width + x) * 4;
 
@@ -181,6 +178,123 @@ function createOutlineSketchCanvasFromGrayscaleCanvas(grayscaleCanvas, outlineOp
 
   outputCtx.putImageData(outputImageData, 0, 0);
   return outputCanvas;
+}
+
+// "Simple" outline reads as closed mass-boundary shapes rather than texture
+// edges: quantise the blurred grayscale to a few value regions and mark the
+// boundaries between them, instead of raw Sobel gradient edges.
+function createPosterizedRegionEdgeCanvas(blurredCanvas, levels) {
+  const width = blurredCanvas.width;
+  const height = blurredCanvas.height;
+
+  const sourceCtx = blurredCanvas.getContext("2d", { willReadFrequently: true });
+  const src = sourceCtx.getImageData(0, 0, width, height).data;
+
+  const outputCanvas = createOffscreenCanvas(width, height);
+  const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+  const outputImageData = outputCtx.createImageData(width, height);
+  const out = outputImageData.data;
+
+  const maxLevelIndex = levels - 1;
+  const getLevelAt = (x, y) => {
+    const clampedX = Math.max(0, Math.min(width - 1, x));
+    const clampedY = Math.max(0, Math.min(height - 1, y));
+    const index = (clampedY * width + clampedX) * 4;
+    return Math.round((src[index] / 255) * maxLevelIndex);
+  };
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const currentLevel = getLevelAt(x, y);
+      const rightLevel = getLevelAt(x + 1, y);
+      const lowerLevel = getLevelAt(x, y + 1);
+      const isEdge = currentLevel !== rightLevel || currentLevel !== lowerLevel;
+      const outputValue = isEdge ? 0 : 255;
+      const index = (y * width + x) * 4;
+
+      out[index] = outputValue;
+      out[index + 1] = outputValue;
+      out[index + 2] = outputValue;
+      out[index + 3] = 255;
+    }
+  }
+
+  outputCtx.putImageData(outputImageData, 0, 0);
+  return outputCanvas;
+}
+
+// Drops isolated edge pixels (fewer than 2 edge neighbours in the
+// 8-neighbourhood) so outlines read as continuous shapes instead of pepper
+// noise. Run twice: the second pass cleans up pairs exposed by the first.
+function despeckleEdgeCanvas(edgeCanvas, passes = 2) {
+  let currentCanvas = edgeCanvas;
+
+  for (let pass = 0; pass < passes; pass += 1) {
+    const width = currentCanvas.width;
+    const height = currentCanvas.height;
+
+    const sourceCtx = currentCanvas.getContext("2d", { willReadFrequently: true });
+    const src = sourceCtx.getImageData(0, 0, width, height).data;
+
+    const outputCanvas = createOffscreenCanvas(width, height);
+    const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+    const outputImageData = outputCtx.createImageData(width, height);
+    const out = outputImageData.data;
+
+    const isEdgeAt = (x, y) => {
+      if (x < 0 || y < 0 || x >= width || y >= height) {
+        return false;
+      }
+
+      return src[(y * width + x) * 4] === 0;
+    };
+
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const index = (y * width + x) * 4;
+        let outputValue = 255;
+
+        if (src[index] === 0) {
+          let neighborCount = 0;
+
+          for (let ky = -1; ky <= 1; ky += 1) {
+            for (let kx = -1; kx <= 1; kx += 1) {
+              if (kx === 0 && ky === 0) {
+                continue;
+              }
+
+              if (isEdgeAt(x + kx, y + ky)) {
+                neighborCount += 1;
+              }
+            }
+          }
+
+          outputValue = neighborCount >= 2 ? 0 : 255;
+        }
+
+        out[index] = outputValue;
+        out[index + 1] = outputValue;
+        out[index + 2] = outputValue;
+        out[index + 3] = 255;
+      }
+    }
+
+    outputCtx.putImageData(outputImageData, 0, 0);
+    currentCanvas = outputCanvas;
+  }
+
+  return currentCanvas;
+}
+
+function createOutlineSketchCanvasFromGrayscaleCanvas(grayscaleCanvas, outlineOptions) {
+  const settings = getOutlineRenderSettings(outlineOptions);
+  const blurredCanvas = createBlurredGrayscaleCanvas(grayscaleCanvas, settings.blurPasses);
+
+  const edgeCanvas = outlineOptions.detail === "low"
+    ? createPosterizedRegionEdgeCanvas(blurredCanvas, 3)
+    : createSobelEdgeCanvas(blurredCanvas, settings.threshold);
+
+  return despeckleEdgeCanvas(edgeCanvas);
 }
 
 function getValueContourDetailSettings(detailLevel) {
@@ -305,49 +419,126 @@ function createMirroredCanvasFromCanvas(sourceCanvas) {
   return outputCanvas;
 }
 
-function createSquintCanvasFromGrayscaleCanvas(sourceCanvas, options = {}) {
-  const { softness = 35 } = options;
-  const clampedSoftness = clamp(softness, 0, 100);
-  const totalPasses = (clampedSoftness / 100) * 5;
-  const wholePasses = Math.floor(totalPasses);
-  const blendAmount = totalPasses - wholePasses;
-  const normalized = clampedSoftness / 100;
-  const valueLevels = Math.round(12 - (normalized * 8));
+// Squint pipeline (docs/squint-algorithm-recommendation.md): value grouping
+// with edge integrity, not smoothing. Downscale to a small working
+// resolution (this itself is the first, cheapest texture-destruction step),
+// iterate a small edge-aware bilateral filter there (mass-forming: texture
+// converges to flat regions while real edges get crisper each pass, since
+// averaging never crosses them), apply a soft value quantization (this is
+// what actually produces the flat-mass look, with boundaries that track
+// real iso-value contours instead of a blur radius), then upscale back.
+// Softness 0-100 drives every stage coherently.
+function getSquintPipelineSettings(softness) {
+  const t = clamp(softness, 0, 100) / 100;
+  const lerp = (a, b, amount) => a + ((b - a) * amount);
 
-  let baseCanvas = sourceCanvas;
-  if (wholePasses > 0) {
-    baseCanvas = createBlurredGrayscaleCanvas(sourceCanvas, wholePasses);
-  }
+  return {
+    workingWidthRatio: lerp(0.40, 0.14, t),
+    rangeSigma: lerp(10, 26, t),
+    bilateralIterations: softness < 40 ? 2 : 3,
+    valueLevels: Math.round(lerp(9, 4, t)),
+    // NOTE: the research doc (docs/squint-algorithm-recommendation.md §4.1)
+    // originally suggested lerp(0.9, 0.55, t) here. Verified against a real
+    // photo that range keeps the linear (near-identity) term so dominant
+    // that quantization barely deviates from the continuous input at any
+    // softness - no visible value banding. bandSoftness must go near 0 for
+    // the cubic ease term to actually flatten each band; lower still means
+    // harder/more-quantized as softness increases, per the doc's intent.
+    bandSoftness: lerp(0.3, 0.0, t)
+  };
+}
 
-  const outputCanvas = createOffscreenCanvas(sourceCanvas.width, sourceCanvas.height);
-  const outputCtx = outputCanvas.getContext("2d");
-  outputCtx.drawImage(baseCanvas, 0, 0);
-
-  if (blendAmount > 0.001) {
-    const nextCanvas = createBlurredGrayscaleCanvas(baseCanvas, 1);
-    outputCtx.save();
-    outputCtx.globalAlpha = blendAmount;
-    outputCtx.drawImage(nextCanvas, 0, 0);
-    outputCtx.restore();
-  }
-
-  const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
+// Soft luminance quantization: eases into and out of each flat value step
+// instead of a hard round, so a smooth gradient settles into a few
+// gently-transitioning bands (stable, painterly) rather than a wandering
+// hard contour. At a real silhouette (large value gap) the eased transition
+// is far narrower than the gap, so that edge still reads crisp.
+function applySquintValueQuantization(sourceCanvas, options) {
+  const { levels, bandSoftness, mode } = options;
+  const width = sourceCanvas.width;
+  const height = sourceCanvas.height;
+  const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
+  const imageData = sourceCtx.getImageData(0, 0, width, height);
   const { data } = imageData;
-  const safeLevels = clamp(valueLevels, 4, 12);
-  const maxStepIndex = safeLevels - 1;
+
+  const maxLevelIndex = Math.max(1, levels - 1);
+  const step = 1 / maxLevelIndex;
 
   for (let i = 0; i < data.length; i += 4) {
-    const value = data[i] / 255;
-    const steppedValue = Math.round(value * maxStepIndex) / maxStepIndex;
-    const gray = Math.round(steppedValue * 255);
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const luma = ((0.299 * r) + (0.587 * g) + (0.114 * b)) / 255;
 
-    data[i] = gray;
-    data[i + 1] = gray;
-    data[i + 2] = gray;
+    const qNearest = Math.round(luma / step) * step;
+    const delta = (luma - qNearest) / step;
+    const softDelta = delta * (bandSoftness + ((1 - bandSoftness) * 4 * delta * delta));
+    const quantizedLuma = clamp(qNearest + (softDelta * step), 0, 1);
+
+    if (mode === "color") {
+      const chromaScale = luma > 0.001 ? quantizedLuma / luma : 1;
+      const scaledR = clamp(r * chromaScale, 0, 255);
+      const scaledG = clamp(g * chromaScale, 0, 255);
+      const scaledB = clamp(b * chromaScale, 0, 255);
+      const gray = quantizedLuma * 255;
+      const chromaMix = 0.8;
+
+      data[i] = Math.round(gray + (chromaMix * (scaledR - gray)));
+      data[i + 1] = Math.round(gray + (chromaMix * (scaledG - gray)));
+      data[i + 2] = Math.round(gray + (chromaMix * (scaledB - gray)));
+    } else {
+      const gray = Math.round(quantizedLuma * 255);
+      data[i] = gray;
+      data[i + 1] = gray;
+      data[i + 2] = gray;
+    }
+
     data[i + 3] = 255;
   }
 
-  outputCtx.putImageData(imageData, 0, 0);
+  sourceCtx.putImageData(imageData, 0, 0);
+  return sourceCanvas;
+}
 
-  return outputCanvas;
+// Shared squint processor for both Painting-stage views (Gray/Colour) and
+// the Drawing-stage "Outline Source: Squint" recipe. Always takes the
+// colour original as input, even for gray mode: the bilateral pass is
+// luma-guided regardless, and grayscale conversion happens only at the
+// final quantization stage.
+function createSquintCanvasFromCanvas(originalCanvas, options = {}) {
+  const { softness = 35, mode = "gray" } = options;
+  const settings = getSquintPipelineSettings(softness);
+
+  const workingWidth = Math.max(2, Math.round(originalCanvas.width * settings.workingWidthRatio));
+  const workingHeight = Math.max(2, Math.round(originalCanvas.height * settings.workingWidthRatio));
+
+  let workingCanvas = areaAverageDownscale(originalCanvas, workingWidth, workingHeight);
+
+  for (let pass = 0; pass < settings.bilateralIterations; pass += 1) {
+    workingCanvas = bilateralPass5x5(workingCanvas, settings.rangeSigma);
+  }
+
+  const quantizedCanvas = applySquintValueQuantization(workingCanvas, {
+    levels: settings.valueLevels,
+    bandSoftness: settings.bandSoftness,
+    mode
+  });
+
+  return bilinearUpscale(quantizedCanvas, originalCanvas.width, originalCanvas.height);
+}
+
+// Outline via Squint: instead of raw Sobel gradient magnitude (which spikes on
+// every leaf/twig in foliage-heavy landscapes, forcing despeckle to patch over
+// noise rather than fix its source), trace boundaries directly on Squint's own
+// mass-forming output. Squint's bilateral+quantize pipeline already turns
+// texture into a few flat, edge-respecting value regions - re-quantizing that
+// output to the same level count and marking adjacent-level mismatches
+// (the existing "Simple" preset technique, createPosterizedRegionEdgeCanvas)
+// recovers real object silhouettes instead of gradient noise. No new
+// low-level pixel code needed: this only recombines existing building blocks.
+function createSquintRegionOutlineCanvas(originalCanvas, softness) {
+  const settings = getSquintPipelineSettings(softness);
+  const squintCanvas = createSquintCanvasFromCanvas(originalCanvas, { softness, mode: "gray" });
+  const edgeCanvas = createPosterizedRegionEdgeCanvas(squintCanvas, settings.valueLevels);
+  return despeckleEdgeCanvas(edgeCanvas);
 }

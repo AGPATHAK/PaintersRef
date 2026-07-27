@@ -11,6 +11,7 @@ V2 now keeps deterministic processors in focused classic-script modules:
 - `modules/mask-processors.js`
 - `modules/palette-processors.js`
 - `modules/observation-processors.js`
+- `modules/color-study-processors.js`
 
 `app.js` remains responsible for:
 
@@ -77,6 +78,8 @@ It updates:
 - `processed.warmMaskCanvas`
 - `processed.coolMaskCanvas`
 - `processed.neutralMaskCanvas`
+- `processed.colorStudyCanvas`
+- `processed.valueContourCanvas`
 - `processed.outlineSketchCanvas`
 - `processed.squintCanvas`
 - `processed.mirrorCanvas`
@@ -120,6 +123,7 @@ Do not extract or redesign this flow during the first helper extraction pass.
 - sheet preview when `activeStage === "general"` and `studySheetPreview.isOpen`
 - focal study when `viewMode === "focalStudy"`
 - temperature study when `viewMode === "temperatureStudy"`
+- color study comparison when `viewMode === "colorStudy"`
 - palette notes when `viewMode === "paletteStudy"`
 - otherwise a single active base canvas from `getActiveBaseCanvas()`
 
@@ -129,6 +133,7 @@ Multi-panel views:
 
 - `renderFocalStudyScene()`
 - `renderTemperatureStudyScene()`
+- `renderColorStudyScene()`
 - `renderPaletteStudyScene()`
 - `renderStudySheetPreviewScene()`
 
@@ -155,8 +160,9 @@ Important behavior:
 
 ## Export Dependencies
 
-Current-view export:
+Current-view export (`Print This View`):
 
+- is visible at the first level of the control panel
 - uses the already-rendered `mainCanvas`
 - creates a filename from `loadedFileName` and the current view label
 - downloads JPEG at quality `0.92`
@@ -170,7 +176,7 @@ Study-sheet preview/export:
 
 Important behavior:
 
-- Current-view export and sheet export remain separate.
+- Print This View/current-view export and sheet export remain separate.
 - Sheet 1 contains Original, Grayscale, 3-Value Notan, and gridded Outline.
 - Sheet 2 contains Original, Light Mask, Midtone Mask, and Shadow Mask.
 - Sheet 3 contains Original, Warm Mask, Cool Mask, and Neutral Mask.
@@ -212,6 +218,8 @@ Completed medium-risk extractions:
 - temperature masks
 - squint and outline helpers
 - palette extraction and palette note rendering
+- Color Study variants
+- Value Contours
 
 Deferred higher-risk candidates:
 

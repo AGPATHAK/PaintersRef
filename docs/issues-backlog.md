@@ -1,8 +1,8 @@
 # Issues Backlog
 
-Focused backlog from the current stable V5.2 checkpoint after the workflow/sidebar, outline, vocabulary, and layout cleanup passes.
+Focused backlog from the current stable V2 build 30 checkpoint after the workflow/sidebar, processor refactor, Color Study, Value Contours, and layout cleanup passes.
 
-Completed workflow-stage reorganization, Squint-to-Painting regrouping, curated outline presets, painter-facing vocabulary cleanup, and recent spacing/layout polish have been removed from the active backlog.
+Completed workflow-stage reorganization, Squint-to-Painting regrouping, curated outline presets, Color Study, Value Contours, painter-facing vocabulary cleanup, and recent spacing/layout polish have been removed from the active backlog.
 
 ## Near Term
 
@@ -13,6 +13,7 @@ Completed workflow-stage reorganization, Squint-to-Painting regrouping, curated 
 | P1 high | docs | Keep docs aligned with current UI vocabulary | S | Any wording or behavior changes | Public-facing docs accurately describe current stage structure, exports, and terminology. |
 | P2 medium | ux | Review small-screen and iPad layout behavior | M | Stable usage feedback | The current control hierarchy remains usable on narrower screens and tablets. |
 | P2 medium | test | Refresh manual smoke-test notes | S | Current workflow settled | Smoke checklist reflects Reference Image, Composition, Drawing, Painting, Export, and Info. |
+| P2 medium | calibration | Validate Color Study and Value Contours across real references | M | More real usage | Presets stay useful and distinct without adding noisy controls. |
 
 ## Later / Nice To Have
 
@@ -33,3 +34,5 @@ Completed workflow-stage reorganization, Squint-to-Painting regrouping, curated 
 - issue-092: Squint moved to Painting and Painting button layout cleaned up
 - issue-093: painter-facing vocabulary cleanup and Drawing outline spacing polish
 - issue-094: current documentation cleanup pass
+- V2 build 25: Color Study palette variants
+- V2 build 28: Value Contours drawing study

@@ -164,7 +164,7 @@ Required checks after every refactor step:
   - Temperature Study
   - Palette Notes
 - Export views work:
-  - Export Current View
+  - Print This View
   - Sheet 1 preview and export
   - Sheet 2 preview and export
   - Sheet 3 preview and export

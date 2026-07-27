@@ -20,7 +20,7 @@
     href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="./styles.css?v=28" />
+  <link rel="stylesheet" href="./styles.css?v=1" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icons/icon.svg" />
@@ -33,7 +33,7 @@
         <p class="app-subtitle">Composition and Value Studies</p>
       </div>
       <div class="header-actions">
-        <span id="appVersionChip" class="app-version-chip">V2 build 28</span>
+        <span id="appVersionChip" class="app-version-chip">V3.0 build 1</span>
         <span id="headerFileChip" class="header-file-chip is-hidden">No image loaded</span>
         <button
           id="themeToggleButton"
@@ -48,6 +48,13 @@
 
     <main class="app-main">
       <aside class="control-panel">
+        <section class="panel-section compact-section print-view-section">
+          <button id="exportCurrentViewButton" type="button">Print This View</button>
+          <p class="helper-text">
+            Saves the active study view, separate from prepared sheet exports.
+          </p>
+        </section>
+
         <section class="panel-section compact-section workflow-stage" data-stage-section="baseline">
           <button type="button" class="stage-toggle" data-stage-toggle="baseline">
             <span class="stage-toggle-label">Reference Image</span>
@@ -190,12 +197,12 @@
           </button>
           <div class="stage-body" data-stage-body="painting">
             <div class="view-mode-grid painting-view-grid">
+              <h3 class="view-mode-group-label">Values</h3>
               <button type="button" class="view-mode-button" data-view-mode="squint">Squint</button>
               <button type="button" class="view-mode-button" data-view-mode="grayscale">Grayscale</button>
               <button type="button" class="view-mode-button" data-view-mode="notan">3-Value Notan</button>
-              <button type="button" class="view-mode-button" data-view-mode="lightMask">Light Mask</button>
-              <button type="button" class="view-mode-button" data-view-mode="midtoneMask">Midtone Mask</button>
-              <button type="button" class="view-mode-button" data-view-mode="shadowMask">Shadow Mask</button>
+              <button type="button" class="view-mode-button" data-view-mode="valueGroups">Value Groups</button>
+              <h3 class="view-mode-group-label">Colour</h3>
               <button type="button" class="view-mode-button" data-view-mode="temperatureStudy">Temperature Study</button>
               <button type="button" class="view-mode-button" data-view-mode="colorStudy">Color Study</button>
               <button type="button" class="view-mode-button" data-view-mode="paletteStudy">Palette Notes</button>
@@ -203,6 +210,10 @@
             <div id="squintControlsSection" class="mode-detail is-hidden">
               <div class="detail-header-row">
                 <h3>Squint Softness</h3>
+              </div>
+              <div class="preset-button-row">
+                <button type="button" class="secondary-button secondary-button--small" data-squint-mode="gray">Gray</button>
+                <button type="button" class="secondary-button secondary-button--small" data-squint-mode="color">Colour</button>
               </div>
               <div class="field">
                 <label for="squintBlurInput">Softness</label>
@@ -229,7 +240,7 @@
               <div class="detail-header-row">
                 <h3>Notan Controls</h3>
                 <button id="resetNotanButton" type="button" class="secondary-button secondary-button--small">
-                  Reset to Standard
+                  Reset to Auto
                 </button>
               </div>
               <div class="form-grid simple-grid-controls">
@@ -266,7 +277,21 @@
                 </div>
               </div>
               <p class="helper-text">
-                Notan groups the image into dark, middle, and light shapes. Standard split: shadow `85`, light `170`.
+                Notan groups the image into dark, middle, and light shapes. Defaults adapt to each image; Reset to Auto restores them.
+              </p>
+            </div>
+            <div id="valueGroupsControlsSection" class="mode-detail is-hidden">
+              <div class="detail-header-row">
+                <h3>Value Groups</h3>
+              </div>
+              <div class="preset-button-row">
+                <button type="button" class="secondary-button secondary-button--small" data-value-groups-count="2">2</button>
+                <button type="button" class="secondary-button secondary-button--small" data-value-groups-count="3">3</button>
+                <button type="button" class="secondary-button secondary-button--small" data-value-groups-count="4">4</button>
+                <button type="button" class="secondary-button secondary-button--small" data-value-groups-count="5">5</button>
+              </div>
+              <p class="helper-text">
+                Groups the image into an equal number of value steps, split from the image's own value range.
               </p>
             </div>
             <div id="temperatureControlsSection" class="mode-detail is-hidden">
@@ -345,14 +370,10 @@
             <span id="generalStageValue" class="stage-toggle-value">Sheets</span>
           </button>
           <div class="stage-body" data-stage-body="general">
-            <button id="exportCurrentViewButton" type="button">Export Current View</button>
-            <p class="helper-text">
-              Saves exactly what you are currently seeing on the canvas.
-            </p>
             <div id="sheetPreviewPanel" class="mode-detail sheet-preview-panel is-hidden">
               <div class="detail-header-row">
-                <h3>Sheet Preview</h3>
-                <span id="sheetPreviewLabel" class="detail-status-label">Sheet 1</span>
+                <h3>Prepared Sheets</h3>
+                <span id="sheetPreviewLabel" class="detail-status-label">Choose</span>
               </div>
               <div class="preset-button-row">
                 <button
@@ -387,7 +408,7 @@
                 </button>
               </div>
               <p class="helper-text">
-                Preview the prepared reference sheets on the main canvas before exporting.
+                Choose a sheet to preview it on the main canvas before exporting.
               </p>
             </div>
             <p id="generalPreviewHelpText" class="helper-text">
@@ -446,12 +467,12 @@
     </main>
   </div>
 
-  <script src="./modules/canvas-utils.js?v=28"></script>
-  <script src="./modules/value-processors.js?v=28"></script>
-  <script src="./modules/mask-processors.js?v=28"></script>
-  <script src="./modules/palette-processors.js?v=28"></script>
-  <script src="./modules/observation-processors.js?v=28"></script>
-  <script src="./modules/color-study-processors.js?v=28"></script>
-  <script src="./app.js?v=28"></script>
+  <script src="./modules/canvas-utils.js?v=1"></script>
+  <script src="./modules/value-processors.js?v=1"></script>
+  <script src="./modules/mask-processors.js?v=1"></script>
+  <script src="./modules/palette-processors.js?v=1"></script>
+  <script src="./modules/observation-processors.js?v=1"></script>
+  <script src="./modules/color-study-processors.js?v=1"></script>
+  <script src="./app.js?v=1"></script>
 </body>
 </html>

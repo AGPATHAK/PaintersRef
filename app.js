@@ -24,7 +24,7 @@
    App Configuration / Constants
    ================================================== */
 
-const APP_VERSION_LABEL = "V2 build 28";
+const APP_VERSION_LABEL = "V3.0 build 1";
 const SUPPORTED_TYPES = ["image/jpeg", "image/png"];
 
 const COMPOSITION_CROP_OPTIONS = [
@@ -131,6 +131,118 @@ function drawGridOverlay(ctx, canvas, options) {
 
   drawGridLines("#ffffff", lineThickness + 2, opacity * 0.78);
   drawGridLines("#111111", lineThickness, opacity * 0.82);
+}
+
+/* ---------------------------------
+   Value scale strip (2.2)
+--------------------------------- */
+
+// Views where reading an absolute value (not hue or a curated mask) is the
+// point, so a click-to-read scale earns its place along the canvas edge.
+const VALUE_STRIP_VIEW_MODES = ["grayscale", "squint", "notan", "valueGroups"];
+
+function getValueStripWidth(imageWidth) {
+  return clamp(Math.round(imageWidth * 0.05), 40, 70);
+}
+
+// Drawn directly onto the main canvas (not a separate overlay element) so
+// Print This View captures it like any other pixel. Step 10 (white) sits at
+// the top and step 0 (black) at the bottom, matching how painters read a
+// value scale - light at the top, dark at the bottom.
+function drawValueStripOverlay(ctx, options) {
+  const { x, width, height, highlightStep } = options;
+  const steps = 11;
+  const stepHeight = height / steps;
+
+  for (let step = 0; step < steps; step += 1) {
+    const gray = Math.round((step / (steps - 1)) * 255);
+    const y = (steps - 1 - step) * stepHeight;
+
+    ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray})`;
+    ctx.fillRect(x, y, width, stepHeight);
+  }
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+  ctx.lineWidth = 1;
+
+  for (let step = 1; step < steps; step += 1) {
+    const y = step * stepHeight;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + width, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeRect(x + 0.5, 0.5, width - 1, height - 1);
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = "600 11px 'Avenir Next', Avenir, Aptos, 'Helvetica Neue', Helvetica, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  [0, 5, 10].forEach((labelStep) => {
+    const centerY = ((steps - 1 - labelStep) * stepHeight) + (stepHeight / 2);
+    ctx.fillStyle = labelStep <= 4 ? "#ffffff" : "#111111";
+    ctx.fillText(String(labelStep), x + (width / 2), centerY);
+  });
+
+  ctx.restore();
+
+  if (highlightStep !== null && highlightStep !== undefined) {
+    const y = (steps - 1 - highlightStep) * stepHeight;
+
+    ctx.save();
+    ctx.strokeStyle = "#c4682e";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 1.5, y + 1.5, width - 3, stepHeight - 3);
+    ctx.restore();
+  }
+}
+
+// Value Groups' own strip variant: exactly `count` segments (not the generic
+// 11), each filled with that band's real output grey, so the strip matches
+// the image's actual palette 1:1. Clicking a segment isolates that band -
+// this replaces the old Light/Midtone/Shadow Mask views, generalised to
+// however many bands are currently selected instead of a fixed three.
+function drawValueGroupsBandStripOverlay(ctx, options) {
+  const { x, width, height, count, isolatedBand } = options;
+  const maxBandIndex = count - 1;
+  const stepHeight = height / count;
+
+  for (let band = 0; band < count; band += 1) {
+    const gray = Math.round((band / maxBandIndex) * 255);
+    const y = (maxBandIndex - band) * stepHeight;
+
+    ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray})`;
+    ctx.fillRect(x, y, width, stepHeight);
+  }
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+  ctx.lineWidth = 1;
+
+  for (let band = 1; band < count; band += 1) {
+    const y = band * stepHeight;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + width, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeRect(x + 0.5, 0.5, width - 1, height - 1);
+  ctx.restore();
+
+  if (isolatedBand !== null && isolatedBand !== undefined) {
+    const y = (maxBandIndex - isolatedBand) * stepHeight;
+
+    ctx.save();
+    ctx.strokeStyle = "#c4682e";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 1.5, y + 1.5, width - 3, stepHeight - 3);
+    ctx.restore();
+  }
 }
 
 /* ---------------------------------
@@ -482,11 +594,14 @@ class PaintersReferenceApp {
       squintControlsSection: document.getElementById("squintControlsSection"),
       squintBlurInput: document.getElementById("squintBlurInput"),
       squintBlurValue: document.getElementById("squintBlurValue"),
+      squintModeButtons: Array.from(document.querySelectorAll("[data-squint-mode]")),
       notanShadowCutoffInput: document.getElementById("notanShadowCutoffInput"),
       notanShadowCutoffValue: document.getElementById("notanShadowCutoffValue"),
       notanLightCutoffInput: document.getElementById("notanLightCutoffInput"),
       notanLightCutoffValue: document.getElementById("notanLightCutoffValue"),
       notanControlsSection: document.getElementById("notanControlsSection"),
+      valueGroupsControlsSection: document.getElementById("valueGroupsControlsSection"),
+      valueGroupsButtons: Array.from(document.querySelectorAll("[data-value-groups-count]")),
       temperatureControlsSection: document.getElementById("temperatureControlsSection"),
       temperatureNeutralThresholdInput: document.getElementById("temperatureNeutralThresholdInput"),
       temperatureNeutralThresholdValue: document.getElementById("temperatureNeutralThresholdValue"),
@@ -554,10 +669,15 @@ class PaintersReferenceApp {
         minimumGap: 10
       },
       squint: {
-        softness: 35
+        softness: 35,
+        mode: "gray"
       },
       valueContour: {
         detail: "medium"
+      },
+      valueGroups: {
+        count: 4,
+        isolatedBand: null
       },
       stageSelections: {
         baseline: "original",
@@ -568,6 +688,8 @@ class PaintersReferenceApp {
       notan: {
         shadowCutoff: 85,
         lightCutoff: 170,
+        autoShadowCutoff: 85,
+        autoLightCutoff: 170,
         minimumGap: 10
       },
       temperature: {
@@ -581,6 +703,10 @@ class PaintersReferenceApp {
         point: null,
         cropPercent: 72
       },
+      valueRead: {
+        viewMode: null,
+        step: null
+      },
       // Selecting a composition crop replaces the working source used by later stages.
       compositionChoice: {
         key: "original",
@@ -593,6 +719,7 @@ class PaintersReferenceApp {
         originalCanvas: null,
         grayscaleCanvas: null,
         notanCanvas: null,
+        valueGroupsCanvas: null,
         lightMaskCanvas: null,
         midtoneMaskCanvas: null,
         shadowMaskCanvas: null,
@@ -603,6 +730,7 @@ class PaintersReferenceApp {
         valueContourCanvas: null,
         outlineSketchCanvas: null,
         squintCanvas: null,
+        colorSquintCanvas: null,
         mirrorCanvas: null,
         paletteColors: [],
         paletteMixNotes: []
@@ -623,6 +751,8 @@ class PaintersReferenceApp {
 
     this.maxCanvasDimension = 1600;
     this.focalStudyLayout = null;
+    this.valueStripLayout = null;
+    this.squintRecomputeHandle = null;
 
     this.initializeTheme();
     this.updateAppVersion();
@@ -686,9 +816,7 @@ class PaintersReferenceApp {
       mirror: "drawing",
       grayscale: "painting",
       notan: "painting",
-      lightMask: "painting",
-      midtoneMask: "painting",
-      shadowMask: "painting",
+      valueGroups: "painting",
       temperatureStudy: "painting",
       colorStudy: "painting",
       paletteStudy: "painting"
@@ -704,6 +832,7 @@ class PaintersReferenceApp {
 
     this.state.studySheetPreview.isOpen = false;
     this.state.viewMode = nextViewMode;
+    this.state.valueRead = { viewMode: null, step: null };
     this.state.activeStage = this.getStageForViewMode(nextViewMode);
     this.state.stageSelections[this.state.activeStage] = nextViewMode;
     this.updateViewModeLabel();
@@ -765,9 +894,36 @@ class PaintersReferenceApp {
         0,
         100
       );
-      this.refreshSquintCanvas();
       this.updateSquintControls();
-      this.renderScene();
+      this.scheduleSquintRecompute();
+    });
+
+    this.dom.squintModeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const mode = button.dataset.squintMode;
+        if (!mode || mode === this.state.squint.mode) {
+          return;
+        }
+
+        this.state.squint.mode = mode;
+        this.updateSquintControls();
+        this.renderScene();
+      });
+    });
+
+    this.dom.valueGroupsButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const count = parseInt(button.dataset.valueGroupsCount, 10);
+        if (!count || count === this.state.valueGroups.count) {
+          return;
+        }
+
+        this.state.valueGroups.count = count;
+        this.state.valueGroups.isolatedBand = null;
+        this.refreshValueGroupsCanvas();
+        this.updateValueGroupsControls();
+        this.renderScene();
+      });
     });
 
     this.dom.notanShadowCutoffInput.addEventListener("input", () => {
@@ -900,12 +1056,13 @@ class PaintersReferenceApp {
         }
 
         if (stage === "general") {
-          if (this.state.processed.originalCanvas) {
-            this.openStudySheetPreview();
-          } else {
-            this.state.activeStage = "general";
-            this.updateStagePanels();
+          this.state.activeStage = "general";
+          this.state.studySheetPreview.isOpen = false;
+          this.updateStagePanels();
+          if (!this.state.processed.originalCanvas) {
             this.renderScene();
+          } else {
+            this.updateStatus("Export options ready");
           }
           return;
         }
@@ -938,6 +1095,11 @@ class PaintersReferenceApp {
           return;
         }
 
+        if (this.state.activeStage === "general" && this.state.processed.originalCanvas) {
+          this.openStudySheetPreview(sheetKey);
+          return;
+        }
+
         this.state.studySheetPreview.activeSheet = sheetKey;
         this.updateStudySheetPreviewControls();
         if (this.state.studySheetPreview.isOpen && this.state.activeStage === "general") {
@@ -957,8 +1119,8 @@ class PaintersReferenceApp {
     }
 
     this.dom.resetNotanButton.addEventListener("click", () => {
-      this.state.notan.shadowCutoff = 85;
-      this.state.notan.lightCutoff = 170;
+      this.state.notan.shadowCutoff = this.state.notan.autoShadowCutoff;
+      this.state.notan.lightCutoff = this.state.notan.autoLightCutoff;
       this.refreshNotanCanvas();
       this.updateNotanControls();
       this.renderScene();
@@ -993,6 +1155,7 @@ class PaintersReferenceApp {
     this.updateValueContourControls();
     this.updateSquintControls();
     this.updateNotanControls();
+    this.updateValueGroupsControls();
     this.updateTemperatureControls();
     this.updateColorStudyControls();
     this.updateFocalStudyControls();
@@ -1024,9 +1187,7 @@ class PaintersReferenceApp {
       focalStudy: "Focal Study",
       grayscale: "Grayscale",
       notan: "3-Value Notan",
-      lightMask: "Light Mask",
-      midtoneMask: "Midtone Mask",
-      shadowMask: "Shadow Mask",
+      valueGroups: "Value Groups",
       temperatureStudy: "Temperature Study",
       colorStudy: "Color Study",
       paletteStudy: "Palette Notes",
@@ -1097,9 +1258,7 @@ class PaintersReferenceApp {
       mirror: "Mirror Check",
       grayscale: "Grayscale",
       notan: "3-Value Notan",
-      lightMask: "Light Mask",
-      midtoneMask: "Midtone Mask",
-      shadowMask: "Shadow Mask",
+      valueGroups: "Value Groups",
       temperatureStudy: "Temperature Study",
       colorStudy: "Color Study",
       paletteStudy: "Palette Notes"
@@ -1118,6 +1277,10 @@ class PaintersReferenceApp {
     const isNotanActive =
       this.state.activeStage === "painting" && this.state.viewMode === "notan";
     this.dom.notanControlsSection.classList.toggle("is-hidden", !isNotanActive);
+
+    const isValueGroupsActive =
+      this.state.activeStage === "painting" && this.state.viewMode === "valueGroups";
+    this.dom.valueGroupsControlsSection.classList.toggle("is-hidden", !isValueGroupsActive);
 
     const isOutlineActive =
       this.state.activeStage === "drawing" && this.state.viewMode === "outlineSketch";
@@ -1215,7 +1378,20 @@ class PaintersReferenceApp {
   updateSquintControls() {
     this.dom.squintBlurInput.value = this.state.squint.softness;
     this.dom.squintBlurValue.textContent = `${this.state.squint.softness}%`;
+    this.dom.squintModeButtons.forEach((button) => {
+      const isActive = button.dataset.squintMode === this.state.squint.mode;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
     this.updateRangeFills();
+  }
+
+  updateValueGroupsControls() {
+    this.dom.valueGroupsButtons.forEach((button) => {
+      const isActive = parseInt(button.dataset.valueGroupsCount, 10) === this.state.valueGroups.count;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
   }
 
   updateTemperatureControls() {
@@ -1274,27 +1450,34 @@ class PaintersReferenceApp {
 
   updateStudySheetPreviewControls() {
     const hasLoadedImage = Boolean(this.state.processed.originalCanvas);
+    const isExportStage = this.state.activeStage === "general";
     const isPreviewOpen = this.state.studySheetPreview.isOpen && hasLoadedImage;
+    const showSheetControls = isExportStage && hasLoadedImage;
     const activeLabel = this.getStudySheetLabel();
 
     if (this.dom.sheetPreviewPanel) {
-      this.dom.sheetPreviewPanel.classList.toggle("is-hidden", !isPreviewOpen);
+      this.dom.sheetPreviewPanel.classList.toggle("is-hidden", !showSheetControls);
     }
 
     if (this.dom.sheetPreviewLabel) {
-      this.dom.sheetPreviewLabel.textContent = activeLabel;
+      this.dom.sheetPreviewLabel.textContent = isPreviewOpen ? activeLabel : "Choose";
     }
 
     if (this.dom.generalPreviewHelpText) {
-      this.dom.generalPreviewHelpText.classList.toggle("is-hidden", isPreviewOpen);
+      this.dom.generalPreviewHelpText.classList.toggle("is-hidden", showSheetControls);
     }
 
     if (this.dom.exportPreviewSheetButton) {
-      this.dom.exportPreviewSheetButton.disabled = !hasLoadedImage;
+      this.dom.exportPreviewSheetButton.disabled = !isPreviewOpen;
+    }
+
+    if (this.dom.closeSheetPreviewButton) {
+      this.dom.closeSheetPreviewButton.disabled = !isPreviewOpen;
     }
 
     this.dom.sheetPreviewButtons.forEach((button) => {
-      const isActive = button.dataset.sheetPreview === this.state.studySheetPreview.activeSheet;
+      const isActive =
+        isPreviewOpen && button.dataset.sheetPreview === this.state.studySheetPreview.activeSheet;
       button.classList.toggle("is-active", isActive);
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
       button.disabled = !hasLoadedImage;
@@ -1320,12 +1503,51 @@ class PaintersReferenceApp {
       return;
     }
 
+    const notanCutoffs = {
+      shadowCutoff: this.state.notan.shadowCutoff,
+      lightCutoff: this.state.notan.lightCutoff
+    };
+
     this.state.processed.notanCanvas = createNotanCanvasFromGrayscaleCanvas(
       this.state.processed.grayscaleCanvas,
-      {
-        shadowCutoff: this.state.notan.shadowCutoff,
-        lightCutoff: this.state.notan.lightCutoff
-      }
+      notanCutoffs
+    );
+
+    this.refreshMaskCanvases(notanCutoffs);
+  }
+
+  refreshValueGroupsCanvas() {
+    if (!this.state.processed.grayscaleCanvas) {
+      return;
+    }
+
+    this.state.processed.valueGroupsCanvas = createValueGroupsCanvasFromGrayscaleCanvas(
+      this.state.processed.grayscaleCanvas,
+      { count: this.state.valueGroups.count, isolateBand: this.state.valueGroups.isolatedBand }
+    );
+  }
+
+  // Sheet 2's tonal masks always partition the same shadow/light cutoffs as
+  // the notan on Sheet 1.
+  refreshMaskCanvases(notanCutoffs) {
+    if (!this.state.processed.grayscaleCanvas) {
+      return;
+    }
+
+    this.state.processed.lightMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(
+      this.state.processed.grayscaleCanvas,
+      "light",
+      notanCutoffs
+    );
+    this.state.processed.midtoneMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(
+      this.state.processed.grayscaleCanvas,
+      "midtone",
+      notanCutoffs
+    );
+    this.state.processed.shadowMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(
+      this.state.processed.grayscaleCanvas,
+      "shadow",
+      notanCutoffs
     );
   }
 
@@ -1363,6 +1585,21 @@ class PaintersReferenceApp {
   }
 
   refreshOutlineCanvas() {
+    const sourceKey = this.state.outline.source || "gray";
+
+    if (sourceKey === "squint") {
+      if (!this.state.processed.originalCanvas) {
+        return;
+      }
+
+      this.state.processed.outlineSketchCanvas = createSquintRegionOutlineCanvas(
+        this.state.processed.originalCanvas,
+        this.state.outlineSource.squintSoftness
+      );
+      this.refreshMirrorCanvas();
+      return;
+    }
+
     const outlineSourceCanvas = this.getOutlineSourceCanvas();
     if (!outlineSourceCanvas) {
       return;
@@ -1387,14 +1624,32 @@ class PaintersReferenceApp {
   }
 
   refreshSquintCanvas() {
-    if (!this.state.processed.grayscaleCanvas) {
+    if (!this.state.processed.originalCanvas) {
       return;
     }
 
-    this.state.processed.squintCanvas = createSquintCanvasFromGrayscaleCanvas(
-      this.state.processed.grayscaleCanvas,
-      this.state.squint
+    this.state.processed.squintCanvas = createSquintCanvasFromCanvas(
+      this.state.processed.originalCanvas,
+      { softness: this.state.squint.softness, mode: "gray" }
     );
+    this.state.processed.colorSquintCanvas = createSquintCanvasFromCanvas(
+      this.state.processed.originalCanvas,
+      { softness: this.state.squint.softness, mode: "color" }
+    );
+  }
+
+  // Recomputing the strong blur on every slider "input" event stutters while
+  // dragging, so coalesce recomputes to one per animation frame.
+  scheduleSquintRecompute() {
+    if (this.squintRecomputeHandle) {
+      cancelAnimationFrame(this.squintRecomputeHandle);
+    }
+
+    this.squintRecomputeHandle = requestAnimationFrame(() => {
+      this.squintRecomputeHandle = null;
+      this.refreshSquintCanvas();
+      this.renderScene();
+    });
   }
 
   refreshMirrorCanvas() {
@@ -1413,6 +1668,8 @@ class PaintersReferenceApp {
     this.refreshSquintCanvas();
   }
 
+  // Note: "squint" source bypasses this - both call sites route it straight
+  // to createSquintRegionOutlineCanvas instead of the generic blur+edge path.
   getOutlineSourceCanvasFromCanvases(canvases) {
     const sourceKey = this.state.outline.source || "gray";
 
@@ -1424,12 +1681,6 @@ class PaintersReferenceApp {
       return null;
     }
 
-    if (sourceKey === "squint") {
-      return createSquintCanvasFromGrayscaleCanvas(canvases.grayscaleCanvas, {
-        softness: this.state.outlineSource.squintSoftness
-      });
-    }
-
     if (sourceKey === "notan") {
       return createNotanCanvasFromGrayscaleCanvas(canvases.grayscaleCanvas, {
         shadowCutoff: this.state.outlineSource.notanShadowCutoff,
@@ -1438,8 +1689,9 @@ class PaintersReferenceApp {
     }
 
     if (this.state.outlineSource.graySimplification > 0) {
-      return createSquintCanvasFromGrayscaleCanvas(canvases.grayscaleCanvas, {
-        softness: this.state.outlineSource.graySimplification
+      return createSquintCanvasFromCanvas(canvases.originalCanvas, {
+        softness: this.state.outlineSource.graySimplification,
+        mode: "gray"
       });
     }
 
@@ -1458,14 +1710,26 @@ class PaintersReferenceApp {
 
     const originalCanvas = cloneCanvas(sourceCanvas);
     const grayscaleCanvas = createGrayscaleCanvasFromCanvas(originalCanvas);
-    const notanCanvas = createNotanCanvasFromGrayscaleCanvas(grayscaleCanvas, {
+
+    const adaptiveCutoffs = computeAdaptiveNotanCutoffs(grayscaleCanvas);
+    this.state.notan.autoShadowCutoff = adaptiveCutoffs.shadowCutoff;
+    this.state.notan.autoLightCutoff = adaptiveCutoffs.lightCutoff;
+    this.state.notan.shadowCutoff = adaptiveCutoffs.shadowCutoff;
+    this.state.notan.lightCutoff = adaptiveCutoffs.lightCutoff;
+
+    const notanCutoffs = {
       shadowCutoff: this.state.notan.shadowCutoff,
       lightCutoff: this.state.notan.lightCutoff
+    };
+    const notanCanvas = createNotanCanvasFromGrayscaleCanvas(grayscaleCanvas, notanCutoffs);
+    const valueGroupsCanvas = createValueGroupsCanvasFromGrayscaleCanvas(grayscaleCanvas, {
+      count: this.state.valueGroups.count,
+      isolateBand: this.state.valueGroups.isolatedBand
     });
 
-    const lightMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "light");
-    const midtoneMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "midtone");
-    const shadowMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "shadow");
+    const lightMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "light", notanCutoffs);
+    const midtoneMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "midtone", notanCutoffs);
+    const shadowMaskCanvas = createTintedMaskCanvasFromGrayscaleCanvas(grayscaleCanvas, "shadow", notanCutoffs);
     const warmMaskCanvas = createTemperatureMaskCanvasFromCanvas(
       originalCanvas,
       "warm",
@@ -1490,15 +1754,26 @@ class PaintersReferenceApp {
       this.state.valueContour
     );
 
-    const squintCanvas = createSquintCanvasFromGrayscaleCanvas(grayscaleCanvas, this.state.squint);
-    const outlineSourceCanvas = this.getOutlineSourceCanvasFromCanvases({
-      originalCanvas,
-      grayscaleCanvas,
-      notanCanvas,
-      squintCanvas
+    const squintCanvas = createSquintCanvasFromCanvas(originalCanvas, {
+      softness: this.state.squint.softness,
+      mode: "gray"
     });
-    const outlineSketchCanvas =
-      createOutlineSketchCanvasFromGrayscaleCanvas(outlineSourceCanvas, this.state.outline);
+    const colorSquintCanvas = createSquintCanvasFromCanvas(originalCanvas, {
+      softness: this.state.squint.softness,
+      mode: "color"
+    });
+    const outlineSourceKey = this.state.outline.source || "gray";
+    const outlineSketchCanvas = outlineSourceKey === "squint"
+      ? createSquintRegionOutlineCanvas(originalCanvas, this.state.outlineSource.squintSoftness)
+      : createOutlineSketchCanvasFromGrayscaleCanvas(
+        this.getOutlineSourceCanvasFromCanvases({
+          originalCanvas,
+          grayscaleCanvas,
+          notanCanvas,
+          squintCanvas
+        }),
+        this.state.outline
+      );
     const mirrorCanvas = createMirroredCanvasFromCanvas(outlineSketchCanvas);
     const paletteColors = extractDominantPaletteFromCanvas(originalCanvas, {
       colorCount: 5
@@ -1508,6 +1783,7 @@ class PaintersReferenceApp {
     this.state.processed.originalCanvas = originalCanvas;
     this.state.processed.grayscaleCanvas = grayscaleCanvas;
     this.state.processed.notanCanvas = notanCanvas;
+    this.state.processed.valueGroupsCanvas = valueGroupsCanvas;
     this.state.processed.lightMaskCanvas = lightMaskCanvas;
     this.state.processed.midtoneMaskCanvas = midtoneMaskCanvas;
     this.state.processed.shadowMaskCanvas = shadowMaskCanvas;
@@ -1518,6 +1794,7 @@ class PaintersReferenceApp {
     this.state.processed.valueContourCanvas = valueContourCanvas;
     this.state.processed.outlineSketchCanvas = outlineSketchCanvas;
     this.state.processed.squintCanvas = squintCanvas;
+    this.state.processed.colorSquintCanvas = colorSquintCanvas;
     this.state.processed.mirrorCanvas = mirrorCanvas;
     this.state.processed.paletteColors = paletteColors;
     this.state.processed.paletteMixNotes = paletteMixNotes;
@@ -1529,6 +1806,8 @@ class PaintersReferenceApp {
     this.state.workingScale = referenceCanvas && this.state.originalWidth > 0
       ? referenceCanvas.width / this.state.originalWidth
       : 1;
+
+    this.updateNotanControls();
   }
 
   // Composition selection feeds later stages by rebuilding every derived canvas.
@@ -1670,13 +1949,13 @@ class PaintersReferenceApp {
       original: this.state.processed.originalCanvas,
       grayscale: this.state.processed.grayscaleCanvas,
       notan: this.state.processed.notanCanvas,
-      lightMask: this.state.processed.lightMaskCanvas,
-      midtoneMask: this.state.processed.midtoneMaskCanvas,
-      shadowMask: this.state.processed.shadowMaskCanvas,
+      valueGroups: this.state.processed.valueGroupsCanvas,
       colorStudy: this.state.processed.colorStudyCanvas,
       valueContours: this.state.processed.valueContourCanvas,
       outlineSketch: this.getActiveOutlineCanvas(),
-      squint: this.state.processed.squintCanvas,
+      squint: this.state.squint.mode === "color"
+        ? this.state.processed.colorSquintCanvas
+        : this.state.processed.squintCanvas,
       mirror: this.state.processed.mirrorCanvas,
       paletteStudy: this.state.processed.originalCanvas
     };
@@ -1685,7 +1964,18 @@ class PaintersReferenceApp {
   }
 
   handleMainCanvasClick(event) {
-    if (!this.state.processed.referenceCanvas || this.state.viewMode !== "focalStudy") {
+    if (this.state.viewMode === "focalStudy") {
+      this.handleFocalStudyCanvasClick(event);
+      return;
+    }
+
+    if (VALUE_STRIP_VIEW_MODES.includes(this.state.viewMode)) {
+      this.handleValueStripCanvasClick(event);
+    }
+  }
+
+  handleFocalStudyCanvasClick(event) {
+    if (!this.state.processed.referenceCanvas) {
       return;
     }
 
@@ -1740,6 +2030,71 @@ class PaintersReferenceApp {
 
     this.updateFocalStudyControls();
     this.updateStatus("Focal point selected");
+    this.renderScene();
+  }
+
+  handleValueStripCanvasClick(event) {
+    const baseCanvas = this.getActiveBaseCanvas();
+    if (!baseCanvas) {
+      return;
+    }
+
+    const rect = this.dom.mainCanvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return;
+    }
+
+    const scaleX = this.dom.mainCanvas.width / rect.width;
+    const scaleY = this.dom.mainCanvas.height / rect.height;
+    const canvasX = (event.clientX - rect.left) * scaleX;
+    const canvasY = (event.clientY - rect.top) * scaleY;
+
+    if (
+      this.state.viewMode === "valueGroups" &&
+      this.valueStripLayout &&
+      canvasX >= this.valueStripLayout.x &&
+      canvasX < this.valueStripLayout.x + this.valueStripLayout.width &&
+      canvasY >= 0 &&
+      canvasY < this.valueStripLayout.height
+    ) {
+      this.handleValueGroupsBandStripClick(canvasY);
+      return;
+    }
+
+    if (canvasX < 0 || canvasX >= baseCanvas.width || canvasY < 0 || canvasY >= baseCanvas.height) {
+      return;
+    }
+
+    const sampleCtx = baseCanvas.getContext("2d", { willReadFrequently: true });
+    const pixel = sampleCtx.getImageData(Math.floor(canvasX), Math.floor(canvasY), 1, 1).data;
+    const luma = (0.299 * pixel[0]) + (0.587 * pixel[1]) + (0.114 * pixel[2]);
+    const step = clamp(Math.round((luma / 255) * 10), 0, 10);
+
+    this.state.valueRead = { viewMode: this.state.viewMode, step };
+    this.updateStatus(`Value ${step}/10`);
+    this.renderScene();
+  }
+
+  // Clicking a band on Value Groups' scale isolates it (toggle: clicking the
+  // already-isolated band returns to showing all bands) - this is what
+  // replaced the old Light/Midtone/Shadow Mask views.
+  handleValueGroupsBandStripClick(canvasY) {
+    const count = this.state.valueGroups.count;
+    const maxBandIndex = count - 1;
+    const stepHeight = this.valueStripLayout.height / count;
+    const rowFromTop = clamp(Math.floor(canvasY / stepHeight), 0, maxBandIndex);
+    const clickedBand = maxBandIndex - rowFromTop;
+
+    this.state.valueGroups.isolatedBand = this.state.valueGroups.isolatedBand === clickedBand
+      ? null
+      : clickedBand;
+
+    this.refreshValueGroupsCanvas();
+    this.updateStatus(
+      this.state.valueGroups.isolatedBand === null
+        ? "Showing all value bands"
+        : `Value band ${this.state.valueGroups.isolatedBand + 1}/${count} isolated`
+    );
     this.renderScene();
   }
 
@@ -1933,6 +2288,7 @@ class PaintersReferenceApp {
     );
 
     this.focalStudyLayout = null;
+    this.valueStripLayout = null;
     this.updateStatus("Temperature study ready");
     this.updateInfo();
     this.updateViewModeLabel();
@@ -1993,6 +2349,7 @@ class PaintersReferenceApp {
     );
 
     this.focalStudyLayout = null;
+    this.valueStripLayout = null;
     this.updateStatus(`${studyLabel} ready`);
     this.updateInfo();
     this.updateViewModeLabel();
@@ -2012,6 +2369,7 @@ class PaintersReferenceApp {
     );
 
     this.focalStudyLayout = null;
+    this.valueStripLayout = null;
     setCanvasSize(this.dom.mainCanvas, paletteCanvas.width, paletteCanvas.height);
     clearCanvas(this.ctx, this.dom.mainCanvas);
     this.ctx.drawImage(paletteCanvas, 0, 0);
@@ -2053,12 +2411,40 @@ class PaintersReferenceApp {
     const baseCanvas = this.getActiveBaseCanvas();
     if (!baseCanvas) return;
 
-    setCanvasSize(this.dom.mainCanvas, baseCanvas.width, baseCanvas.height);
+    const showValueStrip = VALUE_STRIP_VIEW_MODES.includes(this.state.viewMode);
+    const stripWidth = showValueStrip ? getValueStripWidth(baseCanvas.width) : 0;
+
+    this.valueStripLayout = showValueStrip
+      ? { x: baseCanvas.width, width: stripWidth, height: baseCanvas.height }
+      : null;
+
+    setCanvasSize(this.dom.mainCanvas, baseCanvas.width + stripWidth, baseCanvas.height);
     clearCanvas(this.ctx, this.dom.mainCanvas);
     this.ctx.drawImage(baseCanvas, 0, 0);
 
     if (this.state.grid.show) {
-      drawGridOverlay(this.ctx, this.dom.mainCanvas, this.state.grid);
+      drawGridOverlay(this.ctx, { width: baseCanvas.width, height: baseCanvas.height }, this.state.grid);
+    }
+
+    if (this.valueStripLayout && this.state.viewMode === "valueGroups") {
+      drawValueGroupsBandStripOverlay(this.ctx, {
+        x: this.valueStripLayout.x,
+        width: this.valueStripLayout.width,
+        height: this.valueStripLayout.height,
+        count: this.state.valueGroups.count,
+        isolatedBand: this.state.valueGroups.isolatedBand
+      });
+    } else if (this.valueStripLayout) {
+      const highlightStep = this.state.valueRead.viewMode === this.state.viewMode
+        ? this.state.valueRead.step
+        : null;
+
+      drawValueStripOverlay(this.ctx, {
+        x: this.valueStripLayout.x,
+        width: this.valueStripLayout.width,
+        height: this.valueStripLayout.height,
+        highlightStep
+      });
     }
 
     this.updateInfo();
@@ -2228,6 +2614,7 @@ class PaintersReferenceApp {
     const activeLabel = this.getStudySheetLabel();
 
     this.focalStudyLayout = null;
+    this.valueStripLayout = null;
     setCanvasSize(this.dom.mainCanvas, previewCanvas.width, previewCanvas.height);
     clearCanvas(this.ctx, this.dom.mainCanvas);
     this.ctx.drawImage(previewCanvas, 0, 0);
@@ -2243,6 +2630,12 @@ class PaintersReferenceApp {
     if (!this.state.processed.originalCanvas) {
       alert("Please load an image before exporting.");
       return;
+    }
+
+    if (this.state.studySheetPreview.isOpen) {
+      this.state.studySheetPreview.isOpen = false;
+      this.updateStagePanels();
+      this.renderScene();
     }
 
     const viewLabel = this.dom.viewModeText.textContent || "current-view";

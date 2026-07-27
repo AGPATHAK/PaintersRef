@@ -193,6 +193,15 @@ input:focus-visible {
   color: var(--text);
 }
 
+.print-view-section {
+  padding: 9px;
+}
+
+.print-view-section .helper-text {
+  margin-top: 7px;
+  margin-bottom: 0;
+}
+
 .workflow-stage {
   padding: 0;
   overflow: hidden;
@@ -539,6 +548,20 @@ input[type="range"]::-moz-range-thumb {
   content: none;
 }
 
+.view-mode-group-label {
+  grid-column: 1 / -1;
+  margin: 6px 0 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.view-mode-group-label:first-child {
+  margin-top: 0;
+}
+
 [data-stage-section="drawing"] .painting-view-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -799,7 +822,8 @@ button:disabled:hover {
 }
 
 .outline-preset-button.is-active,
-#valueContourControlsSection .secondary-button.is-active {
+#valueContourControlsSection .secondary-button.is-active,
+#valueGroupsControlsSection .secondary-button.is-active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fffdf8;

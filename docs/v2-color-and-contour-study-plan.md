@@ -6,6 +6,13 @@ Add two local deterministic study features that help painters interpret a refere
 
 These features should support painter judgment. Outputs may be approximate, suggestive, and imperfect if they make value, color, or drawing decisions easier to think about.
 
+## Current Status
+
+- Color Study palette variants are implemented in V2 build 25 and later.
+- Value Contours are implemented in V2 build 28 and later.
+- Both features remain local, deterministic, and approximate.
+- Future work should be calibration from real references, not new controls by default.
+
 ## Feature 1: Palette Study Variants
 
 Goal:
@@ -46,12 +53,13 @@ Artist references:
 - Do not claim exact Wesson colors or imitate finished paintings.
 - Prefer labels such as "Watercolor Economy" or "Wesson-like Economy" over exact attribution.
 
-First implementation shape:
+Implemented shape:
 
-- add a Painting view called `Palette Variant` or `Color Study`
-- add a small preset selector only when that view is active
-- implement as a new deterministic processor module
-- preserve current image/composition workflow and export behavior
+- Painting view: `Color Study`
+- Small preset selector only when that view is active
+- Side-by-side comparison of the current source or selected crop and palette study
+- Deterministic processor module: `modules/color-study-processors.js`
+- Current image/composition workflow and export behavior preserved
 
 ## Feature 2: Value Contour Drawing
 
@@ -86,17 +94,17 @@ Possible first labels:
 - Simplified Line Study
 - Mass Boundary Drawing
 
-First implementation shape:
+Implemented shape:
 
-- add a Drawing view called `Value Contours`
-- reuse existing Simple / Balanced / Detailed detail language
-- derive from Squint or Notan/value-grouped source
-- keep controls minimal
+- Drawing view: `Value Contours`
+- Simple / Balanced / Detailed detail language reused
+- Derived from grouped grayscale values in `modules/observation-processors.js`
+- Controls remain minimal and stage-specific
 
 ## Implementation Order
 
-1. Palette Study Variants
-2. Value Contour Drawing
+1. Palette Study Variants - implemented
+2. Value Contour Drawing - implemented
 
 Rationale:
 
@@ -108,8 +116,8 @@ Rationale:
 
 The current V2 refactor is sufficient for these features:
 
-- color study processors can live in a new module before `app.js`
-- value contour logic can either extend `modules/observation-processors.js` or use a focused new module if it grows
+- color study processors live in `modules/color-study-processors.js`
+- value contour logic extends `modules/observation-processors.js`
 - `app.js` should keep orchestration, state, view switching, and UI wiring
 - any new app-shell asset requires a build/cache/version bump
 
