@@ -6,11 +6,15 @@ It supports a simple studio workflow: choose a reference image, test composition
 
 ## Live App
 
-GitHub Pages deployment:
-
 https://agpathak.github.io/PaintersRef/
 
-## What It Does
+No install or account needed - open the link and load an image. It also works as an installable, offline-friendly app (see PWA Notes below).
+
+---
+
+## For Painters
+
+### What It Does
 
 - Loads a local JPG or PNG reference image
 - Preserves aspect ratio while fitting the image to the working canvas
@@ -42,7 +46,7 @@ https://agpathak.github.io/PaintersRef/
 - Previews and exports three prepared study sheets
 - Works as a Progressive Web App (PWA) for installable, offline-friendly use
 
-## Quick Use
+### Quick Use
 
 1. Open the live app.
 2. Load a JPG or PNG reference image.
@@ -61,7 +65,7 @@ https://agpathak.github.io/PaintersRef/
    - Warm/Cool Balance
 5. Use `Print This View` for the active study, or export one of the prepared sheets.
 
-## Export Sheets
+### Export Sheets
 
 `Sheet 1`
 
@@ -85,7 +89,7 @@ https://agpathak.github.io/PaintersRef/
 - Cool Mask
 - Neutral Mask
 
-## Workflow
+### Workflow
 
 - `Reference Image`
   Load a local image, change the loaded image, and adjust the grid overlay.
@@ -100,7 +104,21 @@ https://agpathak.github.io/PaintersRef/
 - `Info`
   Shows compact status and image/view metadata.
 
-## Local Development
+### PWA Notes
+
+- The hosted GitHub Pages build is installable as a PWA in supported browsers (look for an install/add-to-home-screen option in your browser)
+- Once installed, the app shell works offline
+- Theme preference (light/dark) is stored locally in your browser
+
+### Feedback
+
+This is a small, actively-tweaked tool. If something looks wrong or a control is confusing, that's useful to know - pass it along to whoever shared the link with you.
+
+---
+
+## For Developers
+
+### Local Development
 
 Serve the app from a local web server instead of opening `index.html` directly. This is especially helpful because the app registers a service worker.
 
@@ -110,15 +128,13 @@ python3 -m http.server 8080
 
 Then open [http://localhost:8080](http://localhost:8080).
 
-## PWA Notes
+### PWA Implementation Notes
 
 - `manifest.webmanifest` defines install metadata
 - `service-worker.js` caches the app shell for offline reuse
 - `icons/icon.svg` provides the app icon
-- The hosted GitHub Pages build is installable as a PWA in supported browsers
-- Theme preference is stored locally in the browser
 
-## Project Files
+### Project Files
 
 - `index.html` - app structure and controls
 - `styles.css` - layout and visual styling
@@ -127,7 +143,7 @@ Then open [http://localhost:8080](http://localhost:8080).
 - `manifest.webmanifest` - PWA manifest
 - `service-worker.js` - offline caching
 
-## V2/V3 Refactor Branch Notes
+### V2/V3 Refactor Branch Notes
 
 The `codex/v2` branch (still named after its starting point) has a behavior-preserving module split for deterministic processors:
 
@@ -141,7 +157,7 @@ As of 2026-07-21 the app is versioned **V3.0** to mark a major milestone: the Sq
 
 The visible build chip in the header shows the loaded build (e.g. "V3.0 build 1"). When app-shell files change, bump the build label, script query strings, and service-worker cache together so stale loads are easy to spot.
 
-## Planning Documents
+### Planning Documents
 
 Future AI-assisted features are documented as an optional extension, not as a replacement for the current deterministic workflow.
 
@@ -154,7 +170,7 @@ Future AI-assisted features are documented as an optional extension, not as a re
 - [M1 Smoke Test](docs/m1-smoke-test.md)
 - [M1 Reference Screenshots](docs/m1-reference-screenshots.md)
 
-## Current Product Posture
+### Current Product Posture
 
 The current app (V3.0) is stable and usable; active development is paused as of 2026-07-21 while the owner tests it across varied references and shares it with a few people. The next work should come from that real-use feedback: fix concrete regressions, make small terminology/layout polish changes when they reduce friction, and keep exports/crop/service-worker behavior stable.
 
