@@ -24,7 +24,7 @@
    App Configuration / Constants
    ================================================== */
 
-const APP_VERSION_LABEL = "V3.0 build 1";
+const APP_VERSION_LABEL = "V3.0 build 2";
 const SUPPORTED_TYPES = ["image/jpeg", "image/png"];
 
 const COMPOSITION_CROP_OPTIONS = [
@@ -1494,6 +1494,9 @@ class PaintersReferenceApp {
       this.dom.headerFileChip.textContent = hasLoadedImage
         ? `Loaded: ${this.state.loadedFileName}`
         : "No image loaded";
+    }
+    if (this.dom.exportCurrentViewButton) {
+      this.dom.exportCurrentViewButton.disabled = !this.state.processed.originalCanvas;
     }
     this.updateStudySheetPreviewControls();
   }
