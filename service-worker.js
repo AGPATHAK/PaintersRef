@@ -1,17 +1,18 @@
-const CACHE_NAME = "painters-reference-lab-v3-2";
+const CACHE_NAME = "painters-reference-lab-v3-3";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=2",
-  "./app.js?v=2",
-  "./modules/canvas-utils.js?v=2",
-  "./modules/value-processors.js?v=2",
-  "./modules/mask-processors.js?v=2",
-  "./modules/palette-processors.js?v=2",
-  "./modules/observation-processors.js?v=2",
-  "./modules/color-study-processors.js?v=2",
+  "./styles.css?v=3",
+  "./app.js?v=3",
+  "./modules/canvas-utils.js?v=3",
+  "./modules/value-processors.js?v=3",
+  "./modules/mask-processors.js?v=3",
+  "./modules/palette-processors.js?v=3",
+  "./modules/observation-processors.js?v=3",
+  "./modules/color-study-processors.js?v=3",
   "./manifest.webmanifest",
-  "./icons/icon.svg"
+  "./icons/icon.svg",
+  "./icons/og-image.png"
 ];
 
 self.addEventListener("install", (event) => {
