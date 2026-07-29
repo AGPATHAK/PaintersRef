@@ -143,9 +143,9 @@ Then open [http://localhost:8080](http://localhost:8080).
 - `manifest.webmanifest` - PWA manifest
 - `service-worker.js` - offline caching
 
-### V2/V3 Refactor Branch Notes
+### Architecture & Versioning Notes
 
-The `codex/v2` branch (still named after its starting point) has a behavior-preserving module split for deterministic processors:
+`modules/` has a behavior-preserving module split for deterministic processors:
 
 - canvas utilities
 - grayscale / Notan / Value Groups processors
@@ -156,6 +156,8 @@ The `codex/v2` branch (still named after its starting point) has a behavior-pres
 As of 2026-07-21 the app is versioned **V3.0** to mark a major milestone: the Squint pipeline was fully rewritten (deterministic downscale -> iterated bilateral filter -> soft value quantisation -> upscale), Outline now traces boundaries from Squint's output instead of raw Sobel gradients, and the Painting stage's value tools were consolidated (Value Groups gained click-to-isolate, replacing the separate Light/Midtone/Shadow Mask views). See `docs/roadmaps/improvement-plan-2026-07.md` for the full history.
 
 The visible build chip in the header shows the loaded build (e.g. "V3.0 build 1"). When app-shell files change, bump the build label, script query strings, and service-worker cache together so stale loads are easy to spot.
+
+All work now happens directly on `main`; the `codex/v2` branch it was developed on has been merged and deleted.
 
 ### Planning Documents
 
