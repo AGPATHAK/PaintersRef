@@ -1,5 +1,7 @@
 # V2 Runtime Dependency Map
 
+> **Historical architecture record.** V2/build names and `Print This View` below reflect the terminology used at the time. For current release and cache guidance, see [the current-state audit](current-state-audit.md); the current UI label is **Save Current View**.
+
 This map captures the `app.js` runtime boundary for the V2 refactor. It began as a pre-extraction map and now serves as the guardrail for the paused good-enough module architecture. If a future extraction changes these flows, it should be treated as a regression unless the change is intentional and separately planned.
 
 ## Current Module Boundary
@@ -160,7 +162,7 @@ Important behavior:
 
 ## Export Dependencies
 
-Current-view export (`Print This View`):
+Current-view export (then `Print This View`, now **Save Current View**):
 
 - is visible at the first level of the control panel
 - uses the already-rendered `mainCanvas`
@@ -176,7 +178,7 @@ Study-sheet preview/export:
 
 Important behavior:
 
-- Print This View/current-view export and sheet export remain separate.
+- Save Current View/current-view export and sheet export remain separate.
 - Sheet 1 contains Original, Grayscale, 3-Value Notan, and gridded Outline.
 - Sheet 2 contains Original, Light Mask, Midtone Mask, and Shadow Mask.
 - Sheet 3 contains Original, Warm Mask, Cool Mask, and Neutral Mask.
@@ -198,8 +200,7 @@ Extract export helpers only after pure processor extraction has passed smoke che
 Important behavior:
 
 - Cache name is explicit.
-- App shell changes should bump `CACHE_NAME`, versioned asset query strings, and `APP_VERSION_LABEL`.
-- The visible build chip should show the expected build before manual smoke testing.
+- App shell changes should bump `CACHE_NAME` and matching versioned asset query strings. The former `APP_VERSION_LABEL` and visible build chip were removed for public v1.0.
 - The fetch handler serves cached assets first and falls back to `index.html` when offline.
 
 When V2 introduces new module files, those files must be added to `APP_ASSETS`, loaded before `app.js`, and included in the build/version bump.

@@ -2,10 +2,11 @@
 
 ## Stable Version
 
-- Current stable checkpoint: **V3.0 build 1** on `codex/v2`
+- Current public release: **v1.0** on `main`
 - Active development is paused as of 2026-07-21: the owner is testing the app across varied references and sharing it with a few friends before deciding what's next.
 - This checkpoint follows a large round of work tracked in `docs/roadmaps/improvement-plan-2026-07.md`: Squint's algorithm was fully rewritten, Outline now traces boundaries from Squint instead of raw Sobel, Value Groups (adaptive value bands with click-to-isolate) was added, Mass Study was added then removed after real-photo testing showed it wasn't useful even once technically fixed, and the Painting stage's Values group was consolidated from 7 buttons to 4.
-- Versioning was reset from "V2 build N" to "V3.0 build N" to mark the milestone - keep incrementing the build number after "V3.0" for any future release, don't reintroduce "V2".
+- Earlier V2/V3/build labels are internal development history. Use Git tags/releases for public versioning; do not restore a visible header build chip. The former `codex/v2` branch was merged and deleted.
+- Tested support is macOS with Chrome and Safari. Other platforms and browsers are not systematically tested.
 
 ## What Is Working
 
@@ -22,7 +23,7 @@
   - **Values**: Squint (Gray/Colour mode, Softness slider), Grayscale, 3-Value Notan (adaptive cutoffs + manual sliders + Reset to Auto), Value Groups (2/3/4/5 bands; click a band on its scale to isolate it, click again to show all bands)
   - **Colour**: Temperature Study, Color Study palette variants, Palette Notes
   - A click-to-read value scale appears alongside Grayscale/Squint/Notan; Value Groups has its own segmented scale for isolating a band
-- Print This View first-level action
+- Save Current View first-level action
 - Export stage with 3 prepared sheet previews (unchanged structure - Sheet 2 still reads Light/Midtone/Shadow Mask internally even though those aren't separate Painting-stage buttons anymore)
 - Sheet export from the preview workflow
 - Info stage with compact status and image/view metadata
@@ -67,11 +68,11 @@
 ## What Not To Casually Change
 
 - Current export logic
-- First-level Print This View behavior
+- First-level Save Current View behavior
 - The 3-sheet workflow structure (Sheet 2 still needs `lightMaskCanvas`/`midtoneMaskCanvas`/`shadowMaskCanvas` computed even without their own buttons)
 - Preview/sheet wiring
 - Crop workflow
-- Service worker behavior (but always bump `APP_VERSION_LABEL` + every `?v=NN` + `CACHE_NAME` together on every shipped-file change - see the release-protocol notes in `docs/roadmaps/improvement-plan-2026-07.md`)
+- Service worker behavior (when shipped local assets change, update their `?v=NN` revisions in `index.html` and `service-worker.js`, then update `CACHE_NAME`)
 - The simplified visible Outline control surface
 - The current Color Study and Value Contours control surfaces unless real use shows friction
 - Broad `app.js` refactor

@@ -26,7 +26,7 @@ M1 ended with a usable deterministic foundation and a clear decision to defer de
 ### Completed in M2
 
 - Tinted tonal-mask workflow stabilized
-- Print This View exposed as a first-level visible action
+- Save Current View exposed as a first-level visible action (renamed for public v1.0)
 - 3-sheet preview/export workflow implemented
 - Export stage contains prepared sheet preview/export controls
 - Composition guidance visibility improved
@@ -72,7 +72,7 @@ M1 ended with a usable deterministic foundation and a clear decision to defer de
   - Color Study
   - Palette Notes
 - **First-level action**
-  - Print This View
+  - Save Current View
 - **Export**
   - Sheet preview/export workflow
 - **Info**

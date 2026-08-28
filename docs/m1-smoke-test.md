@@ -57,8 +57,8 @@
 
 ### Print / Exports
 
-- [ ] Print This View is visible without opening Export.
-- [ ] Print This View exports the active study view, not a prepared sheet.
+- [ ] Save Current View is visible without opening Export.
+- [ ] Save Current View exports the active study view, not a prepared sheet.
 - [ ] Sheet 1 preview works.
 - [ ] Sheet 2 preview works.
 - [ ] Sheet 3 preview works.

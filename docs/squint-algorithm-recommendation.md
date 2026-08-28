@@ -236,7 +236,7 @@ underneath are flat and their boundaries follow the image, not a grid.
 Within budget. If the upscale proves to be the bottleneck, upscale to
 half canvas resolution and let CSS display scaling do the last 2× —
 acceptable only if the canvas is never read back for export at full
-resolution; since Print This View exports the canvas, prefer the full
+resolution; since Save Current View exports the canvas, prefer the full
 manual upscale. Keep the existing rAF debounce on the slider.
 
 ### 4.5 Integration notes (for the implementing agent)

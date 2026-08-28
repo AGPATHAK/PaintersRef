@@ -1,5 +1,7 @@
 # V2 Color And Contour Study Plan
 
+> **Historical feature plan.** V2/build references are retained to document implementation history and are not the current public version. See [the current-state audit](current-state-audit.md) for v1.0.
+
 ## Purpose
 
 Add two local deterministic study features that help painters interpret a reference without turning the app into paint-by-numbers, a coloring-book generator, or an artist-imitation tool.

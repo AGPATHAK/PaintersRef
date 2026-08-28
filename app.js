@@ -24,7 +24,6 @@
    App Configuration / Constants
    ================================================== */
 
-const APP_VERSION_LABEL = "V3.0 build 4";
 const SUPPORTED_TYPES = ["image/jpeg", "image/png"];
 
 const COMPOSITION_CROP_OPTIONS = [
@@ -146,7 +145,7 @@ function getValueStripWidth(imageWidth) {
 }
 
 // Drawn directly onto the main canvas (not a separate overlay element) so
-// Print This View captures it like any other pixel. Step 10 (white) sits at
+// Save Current View captures it like any other pixel. Step 10 (white) sits at
 // the top and step 0 (black) at the bottom, matching how painters read a
 // value scale - light at the top, dark at the bottom.
 function drawValueStripOverlay(ctx, options) {
@@ -572,7 +571,6 @@ class PaintersReferenceApp {
       referenceSummary: document.getElementById("referenceSummary"),
       referenceFileName: document.getElementById("referenceFileName"),
       headerFileChip: document.getElementById("headerFileChip"),
-      appVersionChip: document.getElementById("appVersionChip"),
       themeToggleButton: document.getElementById("themeToggleButton"),
       changeImageButton: document.getElementById("changeImageButton"),
       mainCanvas: document.getElementById("mainCanvas"),
@@ -755,17 +753,9 @@ class PaintersReferenceApp {
     this.squintRecomputeHandle = null;
 
     this.initializeTheme();
-    this.updateAppVersion();
     this.bindEvents();
     this.initializeCanvas();
     this.syncControls();
-  }
-
-  updateAppVersion() {
-    if (this.dom.appVersionChip) {
-      this.dom.appVersionChip.textContent = APP_VERSION_LABEL;
-      this.dom.appVersionChip.setAttribute("title", `Loaded ${APP_VERSION_LABEL}`);
-    }
   }
 
   initializeTheme() {

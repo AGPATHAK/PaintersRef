@@ -1,7 +1,7 @@
 {
   "name": "Painter's Reference Lab",
   "short_name": "PaintersRef",
-  "description": "Prepare painter-friendly reference sheets with grayscale, notan, tonal masks, outline sketches, and exportable study sheets.",
+  "description": "Turn a local reference image into painter-friendly composition, drawing, value, and colour studies.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -12,6 +12,18 @@
       "src": "./icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

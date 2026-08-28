@@ -20,7 +20,7 @@
 
 ## Smoke Checks
 
-- Run the checklist in [docs/m1-smoke-test.md](/Users/ardhendupathak/Documents/GitHub/PaintersRef_v5.2/docs/m1-smoke-test.md) after implementation.
+- Run the checklist in [docs/m1-smoke-test.md](m1-smoke-test.md) after implementation.
 - Compare against reference screenshots when layout is affected.
 
 ## Rollback Rule

@@ -6,11 +6,11 @@ Milestone 1 prioritized protecting the working deterministic app, reducing regre
 
 ## 2. What Was Successfully Completed
 
-- Smoke test checklist created in [docs/m1-smoke-test.md](/Users/ardhendupathak/Documents/GitHub/PaintersRef_v5.2/docs/m1-smoke-test.md).
-- Reference screenshot baseline process created in [docs/m1-reference-screenshots.md](/Users/ardhendupathak/Documents/GitHub/PaintersRef_v5.2/docs/m1-reference-screenshots.md) with placeholder storage in [docs/reference-screenshots/README.md](/Users/ardhendupathak/Documents/GitHub/PaintersRef_v5.2/docs/reference-screenshots/README.md).
-- Baseline tag procedure documented in [docs/m1-baseline-tag.md](/Users/ardhendupathak/Documents/GitHub/PaintersRef_v5.2/docs/m1-baseline-tag.md).
+- Smoke test checklist created in [docs/m1-smoke-test.md](m1-smoke-test.md).
+- Reference screenshot baseline process created in [docs/m1-reference-screenshots.md](m1-reference-screenshots.md) with placeholder storage in [docs/reference-screenshots/README.md](reference-screenshots/README.md).
+- Baseline tag procedure documented in [docs/m1-baseline-tag.md](m1-baseline-tag.md).
 - Milestone planning and execution discipline documented across the M1 docs, including issue ordering, build order, and no-go zones.
-- Internal structure/documentation pass completed in [app.js](/Users/ardhendupathak/Documents/GitHub/PaintersRef_v5.2/app.js) and summarized in [docs/m1-m106-notes.md](/Users/ardhendupathak/Documents/GitHub/PaintersRef_v5.2/docs/m1-m106-notes.md).
+- Internal structure/documentation pass completed in [app.js](../app.js) and summarized in [docs/m1-m106-notes.md](m1-m106-notes.md).
 - Stable single-script architecture retained after regressions during refactor attempts.
 - Repository workflow improved through issue-scoped branches, smoke-before-merge discipline, and explicit rollback rules in the M1 planning docs.
 
@@ -25,7 +25,7 @@ Both efforts were rolled back after repeated browser regressions, especially aro
 
 Painter's Ref Lab is currently a browser-based deterministic client-side tool built around:
 
-- HTML, CSS, and a single [app.js](/Users/ardhendupathak/Documents/GitHub/PaintersRef_v5.2/app.js) runtime
+- HTML, CSS, and a single [app.js](../app.js) runtime
 - existing export workflows
 - current image-processing features intact
 - PWA support and service worker caching
@@ -35,7 +35,7 @@ Core painter-facing workflows remain intact, including image load, grid, focal c
 
 ## 5. Known Constraints
 
-- Large monolithic [app.js](/Users/ardhendupathak/Documents/GitHub/PaintersRef_v5.2/app.js)
+- Large monolithic [app.js](../app.js)
 - Hidden state/render coupling around composition choice, processed canvases, and render routing
 - Service worker cache sensitivity during asset changes
 - No automated browser regression suite

@@ -1,5 +1,7 @@
 # Improvement Plan — Study Quality & Painter Aids
 
+> **Historical roadmap.** V2/V3 build labels, the `codex/v2` branch, and `Print This View` below describe development checkpoints at the time. The branch was merged and deleted; see [the current-state audit](../current-state-audit.md) for public v1.0 and the current **Save Current View** wording.
+
 Date: 07-07-2026
 Baseline: V2 build 30 (`codex/v2` line, single-page app, classic scripts)
 Executor: Claude Sonnet (implementation agent). Owner reviews after each phase.
@@ -30,9 +32,9 @@ browser), client-side, dependency-free.
   router, and export orchestration. Processors live in `modules/`.
 - Derived canvases are rebuilt eagerly in
   `rebuildWorkingCanvasesFromSource()` — composition crops flow through it.
-- Release protocol for any app-shell change: bump `APP_VERSION_LABEL` in
-  `app.js`, bump every `?v=NN` query string in `index.html`, and bump the
-  cache name in `service-worker.js` — all together, in the same commit.
+- Release protocol at this checkpoint included `APP_VERSION_LABEL`. For
+  public v1.0 the visible label was removed; current app-shell changes bump
+  matching `?v=NN` query strings and the service-worker cache name together.
 - Verification is manual browser smoke testing (see Phase 5). There is no
   test harness; do not add one in this plan.
 - Determinism caveat: `drawImage`/`ctx.imageSmoothingEnabled` canvas scaling
@@ -239,7 +241,7 @@ Files: `app.js` (render layer), small addition to `styles.css` if needed
 
 - When the active view is Grayscale, Squint, Notan, or Value Groups, draw
   a vertical 11-step value strip (0–10, white→black) along the right edge
-  of the main canvas, inside the canvas render (so Print This View
+  of the main canvas, inside the canvas render (so Save Current View
   includes it). Label steps 0, 5, 10.
 - Clicking the image in these views samples the pixel under the cursor,
   converts to a 0–10 value step, and highlights that step on the strip
@@ -295,7 +297,7 @@ against a real photo via Claude-in-Chrome before moving to the next:
   `modules/value-processors.js`, sharing a new `buildGrayscalePercentileLookup`
   helper with adaptive Notan.
 - 2.2 Value scale strip: drawn straight onto `mainCanvas` in `app.js` (so
-  Print This View includes it for free); `handleMainCanvasClick` split into
+  Save Current View includes it for free); `handleMainCanvasClick` split into
   a dispatcher plus `handleFocalStudyCanvasClick`/`handleValueStripCanvasClick`.
 - 2.3 Mass Study: new `modules/simplification-processors.js` (median-cut
   quantization + saturation scale). Deliberately did **not** reuse
@@ -368,7 +370,7 @@ correctly after removing the buttons.
 Files: `index.html`, `app.js`
 
 A painter constantly glances between study and reference. Add a
-"Hold to Compare" button near Print This View:
+"Hold to Compare" button near the current-view save action:
 
 - While pressed (`pointerdown`→`pointerup`/`pointerleave`, works for
   touch), the main canvas temporarily draws the current *original*
@@ -441,7 +443,7 @@ and a high-key (light) image. In both themes, desktop + iPad if available:
 6. Value Groups 2–5; value strip click-reads sensible values.
 7. Mass Study three levels — muted big shapes, <1 s.
 8. Hold-to-compare from every study view.
-9. Print This View from a value view (strip included) and export all three
+9. Save Current View from a value view (strip included) and export all three
    sheets — sheet layout unchanged from build 30.
 10. Hard-refresh after deploy: build chip shows the new build (service
     worker cache actually bumped).

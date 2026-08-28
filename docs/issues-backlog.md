@@ -1,5 +1,7 @@
 # Issues Backlog
 
+> **Historical backlog snapshot.** Build labels in this file are internal development history. Confirm current priorities and public v1.0 behavior in [the current-state audit](current-state-audit.md).
+
 Focused backlog from the current stable V2 build 30 checkpoint after the workflow/sidebar, processor refactor, Color Study, Value Contours, and layout cleanup passes.
 
 Completed workflow-stage reorganization, Squint-to-Painting regrouping, curated outline presets, Color Study, Value Contours, painter-facing vocabulary cleanup, and recent spacing/layout polish have been removed from the active backlog.

@@ -1,6 +1,6 @@
 # Repo Cleanup Audit
 
-This is a conservative cleanup audit for the current V2 build 30 repository state.
+> **Historical audit.** This captures the repository at the former V2 build 30 checkpoint. Use [the documentation map](README.md) and [current-state audit](current-state-audit.md) for public v1.0.
 
 ## Current Finding
 

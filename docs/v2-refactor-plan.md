@@ -1,5 +1,7 @@
 # V2 Refactor Plan
 
+> **Historical plan.** This records the V2 refactor as it was carried out. The `codex/v2` branch was merged into `main` and deleted; its version/build instructions are superseded by the public v1.0 guidance in [the current-state audit](current-state-audit.md).
+
 ## Summary
 
 V2 is a behavior-preserving refactor of the stable deterministic Painter's Reference Lab PWA.
@@ -26,8 +28,7 @@ Current app shell rule:
 
 - Add new classic scripts before `app.js` in `index.html`.
 - Add new app-shell assets to `APP_ASSETS` in `service-worker.js`.
-- Bump `CACHE_NAME`, versioned asset query strings, and `APP_VERSION_LABEL` together.
-- Confirm the visible build chip shows the expected build before smoke testing.
+- At this checkpoint, `CACHE_NAME`, versioned asset query strings, and `APP_VERSION_LABEL` were bumped together. Current releases no longer use `APP_VERSION_LABEL` or a visible build chip; follow the current-state audit.
 
 This checkpoint is enough to support future modules. Do not continue refactoring just to reduce line count.
 
@@ -164,7 +165,7 @@ Required checks after every refactor step:
   - Temperature Study
   - Palette Notes
 - Export views work:
-  - Print This View
+  - Print This View (now **Save Current View**)
   - Sheet 1 preview and export
   - Sheet 2 preview and export
   - Sheet 3 preview and export
@@ -180,7 +181,7 @@ Optional later safety:
 
 - V2 starts as maintainability work, not feature work.
 - Current stable behavior is trusted from user testing.
-- `codex/v2` is the active branch for this plan and future refactor work.
+- `codex/v2` was the active branch for this plan; it was later merged into `main` and deleted.
 - The stable prototype remains available from `main` and `prl-stable-v1`.
 - AI work remains separate from this PWA refactor.
 
