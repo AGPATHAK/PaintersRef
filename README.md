@@ -34,6 +34,33 @@ Use **Save Current View** to download the study currently shown on the canvas as
 - The hosted app can be installed as a Progressive Web App in supported browsers and its app shell is available offline after it has been cached. Your selected image remains local to your device.
 - Light/dark preference is stored locally in the browser.
 
+### Install as an app
+
+You can install Painter's Reference Lab so it opens in its own window, with its own icon in the Dock, Launchpad or home screen. Nothing is downloaded separately — the browser installs it from the live link.
+
+**Mac — Safari** (macOS Sonoma or later)
+
+1. Open [the live app](https://agpathak.github.io/PaintersRef/) in Safari.
+2. Choose **File → Add to Dock**, then click **Add**.
+
+**Mac — Chrome**
+
+1. Open [the live app](https://agpathak.github.io/PaintersRef/) in Chrome.
+2. Click the install icon at the right end of the address bar, or choose **⋮ → Cast, save and share → Install page as app**.
+3. Click **Install**. To keep it in the Dock, right-click its Dock icon and choose **Options → Keep in Dock**.
+
+**Other devices (not systematically tested)**
+
+- **Windows — Chrome or Edge:** use the install icon in the address bar, then right-click the taskbar icon and choose **Pin to taskbar**.
+- **iPhone or iPad — Safari:** tap **Share → Add to Home Screen**.
+- **Android — Chrome:** tap **⋮ → Install app** (or **Add to Home screen**).
+
+**Updating and removing**
+
+- The installed app updates itself the next time it is opened while online. If a change does not appear, close the app and open it again.
+- To remove it on a Mac, right-click the Dock icon and choose **Options → Remove from Dock**, then delete the app from `~/Applications` (Safari) or `~/Applications/Chrome Apps` (Chrome).
+- If an earlier install shows a blank or generic icon, remove it and install again. macOS does not refresh the icon of an app that is already installed.
+
 If something looks wrong or a control is confusing, please [open a GitHub issue](https://github.com/AGPATHAK/PaintersRef/issues).
 
 ## For developers and contributors
